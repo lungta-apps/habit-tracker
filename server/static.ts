@@ -3,17 +3,16 @@ import fs from "fs";
 import path from "path";
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
-  }
+  // In production, the server runs from 'dist', which is also where the client assets are.
+  // __dirname will point to the 'dist' directory.
+  const publicPath = __dirname;
 
-  app.use(express.static(distPath));
+  // Serve static assets (like JS, CSS) from the root of the public path
+  app.use(express.static(publicPath));
 
-  // fall through to index.html if the file doesn't exist
+  // For any other request, fall back to serving index.html.
+  // This is crucial for single-page applications with client-side routing.
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(publicPath, "index.html"));
   });
 }
