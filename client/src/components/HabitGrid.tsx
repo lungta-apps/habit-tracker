@@ -56,47 +56,45 @@ export default function HabitGrid({
     <div className="flex flex-col">
       <ScrollArea className="w-full pb-3" type="always">
         <div className="pb-3">
-          <div
-            role="grid"
-            aria-label="Habit tracking grid"
-            className={cn(
-              "grid rounded-lg border border-border overflow-hidden",
-              "bg-card"
-            )}
-            style={{
-              gridTemplateColumns: `minmax(180px, 200px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
-            }}
-          >
-          <div
-            className="sticky left-0 z-10 h-10 flex items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/50 border-r border-b border-border/50"
-            role="columnheader"
-          >
-            Habit
-          </div>
-          {days.map((day) => (
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div
-              key={day}
-              className="h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-muted/50 border-r border-b border-border/50 last:border-r-0"
-              role="columnheader"
-              aria-label={`Day ${day}`}
-              data-testid={`header-day-${day}`}
+              role="grid"
+              aria-label="Habit tracking grid"
+              className="grid"
+              style={{
+                gridTemplateColumns: `minmax(180px, 200px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
+              }}
             >
-              {day}
+              <div
+                className="sticky left-0 z-10 h-10 flex items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/50 border-r border-b border-border/50"
+                role="columnheader"
+              >
+                Habit
+              </div>
+              {days.map((day) => (
+                <div
+                  key={day}
+                  className="h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-muted/50 border-r border-b border-border/50 last:border-r-0"
+                  role="columnheader"
+                  aria-label={`Day ${day}`}
+                  data-testid={`header-day-${day}`}
+                >
+                  {day}
+                </div>
+              ))}
+              {habits.map((habit) => (
+                <HabitRow
+                  key={habit.id}
+                  habitId={habit.id}
+                  habitName={habit.name}
+                  completedDays={habit.completedDays}
+                  daysInMonth={daysInMonth}
+                  onHabitNameChange={(name) => onUpdateHabit(habit.id, name)}
+                  onHabitDelete={() => onDeleteHabit(habit.id)}
+                  onToggleDay={(day) => onToggleDay(habit.id, day)}
+                />
+              ))}
             </div>
-          ))}
-
-          {habits.map((habit) => (
-            <HabitRow
-              key={habit.id}
-              habitId={habit.id}
-              habitName={habit.name}
-              completedDays={habit.completedDays}
-              daysInMonth={daysInMonth}
-              onHabitNameChange={(name) => onUpdateHabit(habit.id, name)}
-              onHabitDelete={() => onDeleteHabit(habit.id)}
-              onToggleDay={(day) => onToggleDay(habit.id, day)}
-            />
-          ))}
           </div>
         </div>
         <ScrollBar orientation="horizontal" />
