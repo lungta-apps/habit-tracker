@@ -9,6 +9,7 @@ interface HabitRowProps {
   onHabitNameChange: (name: string) => void;
   onHabitDelete: () => void;
   onToggleDay: (day: number) => void;
+  isLastRow?: boolean;
 }
 
 export default function HabitRow({
@@ -19,6 +20,7 @@ export default function HabitRow({
   onHabitNameChange,
   onHabitDelete,
   onToggleDay,
+  isLastRow = false,
 }: HabitRowProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -28,6 +30,7 @@ export default function HabitRow({
         value={habitName}
         onChange={onHabitNameChange}
         onDelete={onHabitDelete}
+        isLastRow={isLastRow}
       />
       {days.map((day) => (
         <HabitCell
@@ -36,6 +39,7 @@ export default function HabitRow({
           onToggle={() => onToggleDay(day)}
           habitName={habitName || "Unnamed habit"}
           dayNumber={day}
+          isLastRow={isLastRow}
         />
       ))}
     </div>

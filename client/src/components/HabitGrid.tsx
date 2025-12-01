@@ -56,11 +56,10 @@ export default function HabitGrid({
     <div className="flex flex-col">
       <ScrollArea className="w-full pb-3" type="always">
         <div className="pb-3">
-          <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div
+          <div
               role="grid"
               aria-label="Habit tracking grid"
-              className="grid"
+              className="grid rounded-lg border border-border bg-card"
               style={{
                 gridTemplateColumns: `minmax(180px, 200px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
               }}
@@ -82,7 +81,7 @@ export default function HabitGrid({
                   {day}
                 </div>
               ))}
-              {habits.map((habit) => (
+              {habits.map((habit, index) => (
                 <HabitRow
                   key={habit.id}
                   habitId={habit.id}
@@ -92,10 +91,10 @@ export default function HabitGrid({
                   onHabitNameChange={(name) => onUpdateHabit(habit.id, name)}
                   onHabitDelete={() => onDeleteHabit(habit.id)}
                   onToggleDay={(day) => onToggleDay(habit.id, day)}
+                  isLastRow={index === habits.length - 1}
                 />
               ))}
             </div>
-          </div>
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>

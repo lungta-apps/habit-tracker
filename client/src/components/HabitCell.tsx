@@ -6,6 +6,7 @@ interface HabitCellProps {
   onToggle: () => void;
   habitName: string;
   dayNumber: number;
+  isLastRow?: boolean;
 }
 
 export default function HabitCell({
@@ -13,6 +14,7 @@ export default function HabitCell({
   onToggle,
   habitName,
   dayNumber,
+  isLastRow = false,
 }: HabitCellProps) {
   return (
     <button
@@ -29,7 +31,8 @@ export default function HabitCell({
       data-testid={`cell-habit-${dayNumber}`}
       className={cn(
         "h-10 w-full min-w-10 flex items-center justify-center",
-        "border-r border-b border-border/50",
+        "border-r border-border/50",
+        !isLastRow && "border-b",
         "transition-all duration-150 ease-out",
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
         "hover-elevate active-elevate-2",

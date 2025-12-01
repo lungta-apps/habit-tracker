@@ -8,6 +8,7 @@ interface HabitNameInputProps {
   onChange: (value: string) => void;
   onDelete: () => void;
   placeholder?: string;
+  isLastRow?: boolean;
 }
 
 export default function HabitNameInput({
@@ -15,6 +16,7 @@ export default function HabitNameInput({
   onChange,
   onDelete,
   placeholder = "New habit...",
+  isLastRow = false,
 }: HabitNameInputProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -33,7 +35,8 @@ export default function HabitNameInput({
     <div
       className={cn(
         "group flex items-center h-10 px-3",
-        "border-r border-b border-border/50",
+        "border-r border-border/50",
+        !isLastRow && "border-b",
         "bg-card/50"
       )}
       onMouseEnter={() => setIsHovered(true)}
