@@ -5,14 +5,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import HabitTracker from "@/components/HabitTracker";
 import NotFound from "@/pages/not-found";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={HabitTracker} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+                  <Switch>
+                    <Route path="/login" component={LoginPage} />
+                    <Route path="/register" component={RegisterPage} />
+                    <Route path="/" component={() => <ProtectedRoute><HabitTracker /></ProtectedRoute>} />
+                    <Route component={NotFound} />
+                  </Switch>  );
 }
 
 function App() {

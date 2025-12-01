@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getDaysInMonth, addMonths, subMonths, format } from "date-fns";
+import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import MonthHeader from "./MonthHeader";
 import HabitGrid from "./HabitGrid";
 
@@ -60,6 +62,8 @@ function saveToStorage(data: MonthData): void {
 export default function HabitTracker() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [allData, setAllData] = useState<MonthData>(() => loadFromStorage());
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const monthKey = getMonthKey(currentDate);
   const daysInMonth = getDaysInMonth(currentDate);
@@ -68,6 +72,18 @@ export default function HabitTracker() {
   useEffect(() => {
     saveToStorage(allData);
   }, [allData]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      // Invalidate the user query to clear the cache
+      await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      // Redirect to login page
+      setLocation('/login');
+    } catch (error) {
+      console.error("Failed to logout", error);
+    }
+  };
 
   const updateHabits = useCallback((newHabits: Habit[]) => {
     setAllData((prev) => ({
@@ -143,6 +159,7 @@ export default function HabitTracker() {
           currentDate={currentDate}
           onPreviousMonth={handlePreviousMonth}
           onNextMonth={handleNextMonth}
+          onLogout={handleLogout}
         />
         <div className="pb-8">
           <HabitGrid
