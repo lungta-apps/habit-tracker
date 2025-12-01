@@ -3,18 +3,14 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import HabitRow from "./HabitRow";
 import { cn } from "@/lib/utils";
-
-interface Habit {
-  id: string;
-  name: string;
-  completedDays: number[];
-}
+import { Habit, HabitColor } from "./HabitTracker";
 
 interface HabitGridProps {
   habits: Habit[];
   daysInMonth: number;
   onAddHabit: () => void;
   onUpdateHabit: (id: string, name: string) => void;
+  onUpdateHabitColor: (id: string, color: HabitColor) => void;
   onDeleteHabit: (id: string) => void;
   onToggleDay: (habitId: string, day: number) => void;
 }
@@ -24,6 +20,7 @@ export default function HabitGrid({
   daysInMonth,
   onAddHabit,
   onUpdateHabit,
+  onUpdateHabitColor,
   onDeleteHabit,
   onToggleDay,
 }: HabitGridProps) {
@@ -86,9 +83,11 @@ export default function HabitGrid({
                   key={habit.id}
                   habitId={habit.id}
                   habitName={habit.name}
+                  habitColor={habit.color || "blue"}
                   completedDays={habit.completedDays}
                   daysInMonth={daysInMonth}
                   onHabitNameChange={(name) => onUpdateHabit(habit.id, name)}
+                  onHabitColorChange={(color) => onUpdateHabitColor(habit.id, color)}
                   onHabitDelete={() => onDeleteHabit(habit.id)}
                   onToggleDay={(day) => onToggleDay(habit.id, day)}
                   isLastRow={index === habits.length - 1}

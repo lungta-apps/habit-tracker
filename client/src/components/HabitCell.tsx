@@ -1,12 +1,19 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HabitColor, HABIT_COLORS } from "./HabitTracker";
 
 interface HabitCellProps {
   isCompleted: boolean;
   onToggle: () => void;
   habitName: string;
   dayNumber: number;
+  color: HabitColor;
   isLastRow?: boolean;
+}
+
+function getColorClasses(color: HabitColor) {
+  const colorConfig = HABIT_COLORS.find((c) => c.value === color);
+  return colorConfig || HABIT_COLORS[0];
 }
 
 export default function HabitCell({
@@ -14,8 +21,11 @@ export default function HabitCell({
   onToggle,
   habitName,
   dayNumber,
+  color,
   isLastRow = false,
 }: HabitCellProps) {
+  const colorClasses = getColorClasses(color);
+
   return (
     <button
       role="gridcell"
@@ -37,7 +47,7 @@ export default function HabitCell({
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
         "hover-elevate active-elevate-2",
         isCompleted
-          ? "bg-primary/20 text-primary"
+          ? cn(colorClasses.bg, colorClasses.text)
           : "bg-transparent text-muted-foreground/30 hover:text-muted-foreground/50"
       )}
     >

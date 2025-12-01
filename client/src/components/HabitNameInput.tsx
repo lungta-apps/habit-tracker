@@ -1,11 +1,15 @@
 import { X } from "lucide-react";
-import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { useState, useRef, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import ColorPicker from "./ColorPicker";
+import { HabitColor } from "./HabitTracker";
 
 interface HabitNameInputProps {
   value: string;
+  color: HabitColor;
   onChange: (value: string) => void;
+  onColorChange: (color: HabitColor) => void;
   onDelete: () => void;
   placeholder?: string;
   isLastRow?: boolean;
@@ -13,7 +17,9 @@ interface HabitNameInputProps {
 
 export default function HabitNameInput({
   value,
+  color,
   onChange,
+  onColorChange,
   onDelete,
   placeholder = "New habit...",
   isLastRow = false,
@@ -34,7 +40,7 @@ export default function HabitNameInput({
   return (
     <div
       className={cn(
-        "group flex items-center h-10 px-3",
+        "group flex items-center h-10 px-2 gap-1",
         "border-r border-border/50",
         !isLastRow && "border-b",
         "bg-card/50"
@@ -43,6 +49,7 @@ export default function HabitNameInput({
       onMouseLeave={() => setIsHovered(false)}
       role="gridcell"
     >
+      <ColorPicker value={color} onChange={onColorChange} />
       <input
         ref={inputRef}
         type="text"
@@ -68,7 +75,7 @@ export default function HabitNameInput({
         aria-label="Delete habit"
         data-testid="button-delete-habit"
         className={cn(
-          "h-6 w-6 ml-1 shrink-0",
+          "h-6 w-6 shrink-0",
           "transition-opacity duration-150",
           isHovered || isFocused ? "opacity-100" : "opacity-0"
         )}
