@@ -20,7 +20,34 @@ app.use(
   }),
 );
 
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+
 app.use(express.urlencoded({ extended: false }));
+
+const PgSession = ConnectPgSimple(session);
+
+app.use(
+  session({
+    store: new PgSession({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: process.env.NODE_ENV === "production",
+    },
+  })
+);
+
+declare module "express-session" {
+  interface SessionData {
+    userId: string;
+  }
+}
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
