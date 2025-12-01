@@ -1,0 +1,35 @@
+I need your help with the following project. Look at my requirements, draw on your vast knowledge of coding and come up with the best strategy you can to implement this application in a way that helps me get this running quickly but that allows me to adapt this project in the future.
+
+## Primary Goal
+This web app will track habits. Simple, minimal web app. The one page web app will have a grid that represents a monthly calendar. Each column is one day and the rows  are the habits to be tracked. The header row of the grid are the dates (1-30 or 31), one per column. The first column is where the user can write the name of the habit to be tracked for that row. The name of the month and the year appears at the top of the web page in large bold letters. The user types the name of the habit at the beginning of each row (first column) and then makes a checkmark or x depending on if they met the criterion for completing that habit that day. The app will be hosted on Vercel and the database on Neon.
+
+## Type of Application
+Web App
+
+## Accessibility Considerations
+Ensure the application adheres to accessibility best practices (WCAG AA level recommended).
+- Use semantic HTML elements correctly (e.g., <nav>, <main>, <button>, <article>).
+- Implement proper ARIA attributes where necessary to enhance screen reader compatibility, especially for dynamic content and custom components.
+- Ensure all interactive elements are fully navigable and operable using only the keyboard.
+- Maintain sufficient color contrast between text and background elements.
+- Provide text alternatives (alt text) for all meaningful images.
+- Test the application using screen readers (e.g., VoiceOver, NVDA) and keyboard navigation.
+
+## User Registration
+Initially this app will not have user registration but it may be added in the future. Let's plan on adding a backend database and API structure that support this.
+
+## Monetization Plan
+This application currently has no specific monetization plans.
+
+## Data Storage Requirements
+The application will need to store data including but not limited to the following types of data:
+
+## Backend/Storage Strategy
+Given the requirements for user registration and/or monetization, strongly consider using **Supabase**. It's an open-source Backend-as-a-Service that simplifies database management, authentication, real-time subscriptions, and storage, which will be beneficial for these features.
+
+## Development Environment
+using React/Next.js with various backend options
+
+## Visual Theme
+Minimalist, Dark Mode
+
