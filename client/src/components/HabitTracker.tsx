@@ -3,11 +3,25 @@ import { getDaysInMonth, addMonths, subMonths, format } from "date-fns";
 import MonthHeader from "./MonthHeader";
 import HabitGrid from "./HabitGrid";
 
-interface Habit {
+export type HabitColor = "blue" | "green" | "purple" | "pink" | "orange" | "yellow" | "teal" | "red";
+
+export interface Habit {
   id: string;
   name: string;
   completedDays: number[];
+  color: HabitColor;
 }
+
+export const HABIT_COLORS: { value: HabitColor; label: string; bg: string; text: string }[] = [
+  { value: "blue", label: "Blue", bg: "bg-blue-500/20", text: "text-blue-400" },
+  { value: "green", label: "Green", bg: "bg-green-500/20", text: "text-green-400" },
+  { value: "purple", label: "Purple", bg: "bg-purple-500/20", text: "text-purple-400" },
+  { value: "pink", label: "Pink", bg: "bg-pink-500/20", text: "text-pink-400" },
+  { value: "orange", label: "Orange", bg: "bg-orange-500/20", text: "text-orange-400" },
+  { value: "yellow", label: "Yellow", bg: "bg-yellow-500/20", text: "text-yellow-400" },
+  { value: "teal", label: "Teal", bg: "bg-teal-500/20", text: "text-teal-400" },
+  { value: "red", label: "Red", bg: "bg-red-500/20", text: "text-red-400" },
+];
 
 interface MonthData {
   [monthKey: string]: Habit[];
@@ -75,6 +89,7 @@ export default function HabitTracker() {
       id: generateId(),
       name: "",
       completedDays: [],
+      color: "blue",
     };
     updateHabits([...habits, newHabit]);
   }, [habits, updateHabits]);
@@ -83,6 +98,16 @@ export default function HabitTracker() {
     (id: string, name: string) => {
       const updated = habits.map((h) =>
         h.id === id ? { ...h, name } : h
+      );
+      updateHabits(updated);
+    },
+    [habits, updateHabits]
+  );
+
+  const handleUpdateHabitColor = useCallback(
+    (id: string, color: HabitColor) => {
+      const updated = habits.map((h) =>
+        h.id === id ? { ...h, color } : h
       );
       updateHabits(updated);
     },
@@ -125,6 +150,7 @@ export default function HabitTracker() {
             daysInMonth={daysInMonth}
             onAddHabit={handleAddHabit}
             onUpdateHabit={handleUpdateHabit}
+            onUpdateHabitColor={handleUpdateHabitColor}
             onDeleteHabit={handleDeleteHabit}
             onToggleDay={handleToggleDay}
           />
