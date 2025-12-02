@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
+import { Pool } from '@neondatabase/serverless'; // Import Pool
 
 const app = express();
 
@@ -23,10 +24,17 @@ if (!process.env.SESSION_SECRET) {
 
 const PgSession = ConnectPgSimple(session);
 
+// Initialize the pool for sessions with serverless-specific settings
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 1, // Limit connections in serverless
+  connectionTimeoutMillis: 5000,
+});
+
 app.use(
   session({
     store: new PgSession({
-      conString: process.env.DATABASE_URL,
+      pool: sessionPool, // Pass the pool directly
       createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET,

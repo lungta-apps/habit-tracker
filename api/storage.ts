@@ -1,5 +1,5 @@
 import { type User, type InsertUser, type Habit, type InsertHabit, users, habits } from "@shared/schema";
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
 import * as schema from '@shared/schema';
@@ -21,12 +21,8 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL, ensure the database is provisioned");
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 1, // Limit connections in serverless
-  connectionTimeoutMillis: 5000,
-});
-const db = drizzle(pool, { schema });
+const sql = neon(process.env.DATABASE_URL);
+const db = drizzle(sql, { schema });
 
 
 // modify the interface with any CRUD methods
