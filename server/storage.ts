@@ -1,8 +1,13 @@
 import { type User, type InsertUser, type Habit, type InsertHabit, users, habits } from "@shared/schema";
-import { neon } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
 import * as schema from '@shared/schema';
+
+// Force the Neon driver to use HTTP connections
+// as Vercel serverless functions do not support WebSockets.
+neonConfig.fetchConnectionCache = true;
+neonConfig.webSocketConstructor = undefined;
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL, ensure the database is provisioned");
