@@ -7,32 +7,21 @@ import fs from "fs";
 import path from "path";
 
 export function serveStatic(app: Express) {
+  // In production, the server runs from 'dist', which is also where the client assets are.
+  // __dirname will point to the 'dist' directory.
   const publicPath = __dirname;
 
+  // Serve static assets (like JS, CSS) from the root of the public path
   app.use(express.static(publicPath));
 
-  app.use("*", (req, res) => {
+  // For any other request, fall back to serving index.html.
+  // This is crucial for single-page applications with client-side routing.
+  app.use("*", (_req, res) => {
     const indexPath = path.resolve(publicPath, "index.html");
-    
-    try {
-      const filesInDir = fs.readdirSync(publicPath);
-      res.status(500).json({
-          message: "DEBUG: Vercel pathing issue. Attempting to find index.html.",
-          triedPath: indexPath,
-          public_path: publicPath,
-          dirname: __dirname,
-          cwd: process.cwd(),
-          files_in_public_path: filesInDir,
-          url_requested: req.originalUrl
-      });
-    } catch (e: any) {
-      res.status(500).json({
-        message: "DEBUG: Error reading publicPath.",
-        error: e.message,
-        public_path: publicPath,
-        dirname: __dirname,
-        cwd: process.cwd(),
-      });
+    if(fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send("index.html not found");
     }
   });
 }
