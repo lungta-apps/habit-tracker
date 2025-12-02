@@ -1,5 +1,16 @@
 {
-  "buildCommand": "npm run build",
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node",
+      "config": {
+        "esbuild": {
+          "external": ["drizzle-orm"]
+        }
+      }
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
