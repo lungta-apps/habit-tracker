@@ -1,7 +1,7 @@
 // dev-server.ts
 import http from 'http';
 import app from './api/index'; // Import the main app from our Vercel-compatible entrypoint
-import { setupVite } from './server/vite'; // The Vite setup is still needed for dev
+import { setupVite } from './api/vite'; // The Vite setup is still needed for dev
 
 async function startDevServer() {
   const httpServer = http.createServer(app);

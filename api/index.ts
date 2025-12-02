@@ -2,7 +2,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
-import { registerRoutes } from "../server/routes";
+import { registerRoutes } from "./routes";
 
 const app = express();
 
