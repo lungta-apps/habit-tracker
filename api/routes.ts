@@ -1,6 +1,6 @@
 import { type Request, type Response, type NextFunction, type Express } from "express";
 import bcrypt from "bcrypt";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { insertHabitSchema, authSchema } from "@shared/schema";
 
 export async function registerRoutes(

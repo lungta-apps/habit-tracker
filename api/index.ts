@@ -2,7 +2,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
 import { Pool } from '@neondatabase/serverless'; // Import Pool
 
 const app = express();
