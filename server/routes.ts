@@ -111,6 +111,24 @@ export async function registerRoutes(
   });
 
 
+  // ====== HEALTH CHECK FOR DEBUGGING ======
+  app.get("/api/health-check", async (_req, res) => {
+    try {
+      // Attempt a simple, non-existent query to test the connection
+      await storage.getUserByUsername("healthcheck");
+      res.status(200).json({ status: "ok", message: "Database connection is successful." });
+    } catch (e: any) {
+      console.error("Health check failed:", e);
+      res.status(500).json({ 
+        status: "error", 
+        message: "Database connection failed.", 
+        error: e.message,
+        stack: e.stack,
+      });
+    }
+  });
+
+
   // put application routes here
   // prefix all routes with /api
 
