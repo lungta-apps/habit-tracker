@@ -1,13 +1,11 @@
 import { type Request, type Response, type NextFunction, type Express } from "express";
-import { createServer, type Server } from "http";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { insertHabitSchema, authSchema } from "@shared/schema";
 
 export async function registerRoutes(
-  httpServer: Server,
   app: Express
-): Promise<Server> {
+): Promise<void> {
 
   // Remove dev user creation logic
   // let devUser = await storage.getUserByUsername("dev");
@@ -144,6 +142,4 @@ export async function registerRoutes(
 
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
-
-  return httpServer;
 }
