@@ -1,8 +1,8 @@
-import { type User, type InsertUser, type Habit, type InsertHabit, users, habits } from "@shared/schema";
+import { type User, type InsertUser, type Habit, type InsertHabit, users, habits } from "../shared/schema.js";
 import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
-import * as schema from '@shared/schema';
+import * as schema from '../shared/schema.js';
 import ws from 'ws'; // Import the ws package
 
 // Configure Neon driver connection based on environment
