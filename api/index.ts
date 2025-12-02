@@ -59,6 +59,11 @@ registerRoutes(app);
 
 // Final error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  if (res.headersSent) {
+    console.error('Headers already sent, cannot send error response:', err);
+    return _next(err); // Call next with error to allow Express to handle closing the connection
+  }
+
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   res.status(status).json({ message });
