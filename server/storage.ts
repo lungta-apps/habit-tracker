@@ -3,11 +3,19 @@ import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq } from 'drizzle-orm';
 import * as schema from '@shared/schema';
+import ws from 'ws'; // Import the ws package
 
-// Force the Neon driver to use HTTP connections
-// as Vercel serverless functions do not support WebSockets.
-neonConfig.fetchConnectionCache = true;
-neonConfig.webSocketConstructor = undefined;
+// Configure Neon driver connection based on environment
+if (process.env.NODE_ENV !== 'production') {
+  // For local development, use ws for WebSocket polyfill
+  neonConfig.webSocketConstructor = ws;
+} else {
+  // For production (Vercel), explicitly disable WebSocket features
+  // and force HTTP mode.
+  neonConfig.useSecureWebSocket = false;
+  neonConfig.pipelineConnect = false;
+  neonConfig.webSocketConstructor = undefined; // Ensure no WebSocket constructor is used
+}
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL, ensure the database is provisioned");
