@@ -27,15 +27,17 @@ const PgSession = ConnectPgSimple(session);
 // Initialize the pool for sessions with serverless-specific settings
 const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1, // Limit connections in serverless
-  connectionTimeoutMillis: 5000,
+  max: 1, // Critical for serverless
+  connectionTimeoutMillis: 10000, // Increase timeout
+  idleTimeoutMillis: 30000,
 });
 
 app.use(
   session({
     store: new PgSession({
-      pool: sessionPool, // Pass the pool directly
-      createTableIfMissing: true,
+      pool: sessionPool,
+      createTableIfMissing: false, // IMPORTANT: Don't create on every cold start
+      tableName: 'session', // Your existing table name
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -43,6 +45,8 @@ app.use(
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: 'lax',
     },
   })
 );
