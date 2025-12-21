@@ -3,7 +3,15 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes.js";
-import { Pool } from '@neondatabase/serverless'; // Import Pool
+import { Pool, neonConfig } from '@neondatabase/serverless';
+
+// IMPORTANT: Configure neonConfig BEFORE creating any Pool instances
+// Vercel serverless doesn't support WebSockets, so we force HTTP mode in production
+if (process.env.NODE_ENV === 'production') {
+  neonConfig.useSecureWebSocket = false;
+  neonConfig.pipelineConnect = false;
+  neonConfig.webSocketConstructor = undefined;
+}
 
 const app = express();
 
