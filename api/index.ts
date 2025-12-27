@@ -6,14 +6,18 @@ import { registerRoutes } from "./routes.js";
 import { Pool, neonConfig } from '@neondatabase/serverless';
 
 // IMPORTANT: Configure neonConfig BEFORE creating any Pool instances
-// Vercel serverless doesn't support WebSockets, so we force HTTP mode in production
-if (process.env.NODE_ENV === 'production') {
+// Vercel serverless doesn't support WebSockets, so we force HTTP mode
+// Use VERCEL env var (auto-set by Vercel) since NODE_ENV may not be set
+if (process.env.VERCEL) {
   neonConfig.useSecureWebSocket = false;
   neonConfig.pipelineConnect = false;
   neonConfig.webSocketConstructor = undefined;
 }
 
 const app = express();
+
+// Trust Vercel's proxy - required for secure cookies and correct protocol detection
+app.set('trust proxy', 1);
 
 // All middleware from the original server file is kept
 app.use(
@@ -52,7 +56,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: process.env.NODE_ENV === "production",
+      secure: !!process.env.VERCEL, // true on Vercel (HTTPS), false locally
       httpOnly: true,
       sameSite: 'lax',
     },
