@@ -9,6 +9,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 // Vercel serverless doesn't support WebSockets, so we force HTTP mode
 // Use VERCEL env var (auto-set by Vercel) since NODE_ENV may not be set
 if (process.env.VERCEL) {
+  neonConfig.fetchConnectionCache = true; // Enable HTTP connection caching for serverless
   neonConfig.useSecureWebSocket = false;
   neonConfig.pipelineConnect = false;
   neonConfig.webSocketConstructor = undefined;
