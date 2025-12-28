@@ -1,7 +1,19 @@
 import { type Request, type Response, type NextFunction, type Express } from "express";
 import bcrypt from "bcrypt";
+import { startOfMonth, endOfMonth, parseISO, format } from "date-fns";
 import { storage } from "./storage.js";
-import { insertHabitSchema, authSchema } from "../shared/schema.js";
+import { insertHabitSchema, updateHabitSchema, authSchema } from "../shared/schema.js";
+
+// Helper to parse date string and set to noon UTC to avoid timezone issues
+function parseDateToNoonUTC(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+// Helper to get day of month from a stored date (handles UTC storage)
+function getDayFromStoredDate(date: Date): number {
+  return new Date(date).getUTCDate();
+}
 
 export async function registerRoutes(
   app: Express
@@ -126,21 +138,42 @@ export async function registerRoutes(
   });
 
 
-  // put application routes here
-  // prefix all routes with /api
+  // ====== HABIT ROUTES ======
 
-  app.get("/api/habits", isAuthenticated, async (req, res) => {
-    // In a real app, you'd get the userId from the session/token
-    const habits = await storage.getHabits(req.session.userId!);
-    res.json(habits);
+  // Get all habits for user with completions for a given month
+  app.get("/api/habits", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const month = req.query.month as string; // Expected format: YYYY-MM
+
+      const habits = await storage.getHabits(userId);
+
+      // Get the month date range (use current month if not provided)
+      const monthDate = month ? parseISO(`${month}-01`) : new Date();
+      const start = startOfMonth(monthDate);
+      const end = endOfMonth(monthDate);
+
+      // Always include completedDays for the month
+      const habitsWithCompletions = await Promise.all(
+        habits.map(async (habit) => {
+          const completions = await storage.getCompletionsForHabit(habit.id, start, end);
+          const completedDays = completions.map(c => getDayFromStoredDate(c.completedDate));
+          return { ...habit, completedDays };
+        })
+      );
+
+      res.json(habitsWithCompletions);
+    } catch (error) {
+      next(error);
+    }
   });
 
+  // Create a new habit
   app.post("/api/habits", isAuthenticated, async (req, res, next) => {
     try {
-      // In a real app, you'd get the userId from the session/token
       const parsed = insertHabitSchema.safeParse({
         ...req.body,
-        userId: req.session.userId!, 
+        userId: req.session.userId!,
       });
 
       if (!parsed.success) {
@@ -148,13 +181,122 @@ export async function registerRoutes(
       }
 
       const newHabit = await storage.createHabit(parsed.data);
-      res.status(201).json(newHabit);
+      // Return with empty completedDays for consistency
+      res.status(201).json({ ...newHabit, completedDays: [] });
     } catch (error) {
       next(error);
     }
   });
 
+  // Update a habit
+  app.patch("/api/habits/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const habitId = req.params.id;
+      const userId = req.session.userId!;
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+      // Verify habit belongs to user
+      const habit = await storage.getHabit(habitId);
+      if (!habit) {
+        return res.status(404).json({ message: "Habit not found" });
+      }
+      if (habit.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to update this habit" });
+      }
+
+      const parsed = updateHabitSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
+
+      const updated = await storage.updateHabit(habitId, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Delete a habit
+  app.delete("/api/habits/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const habitId = req.params.id;
+      const userId = req.session.userId!;
+
+      // Verify habit belongs to user
+      const habit = await storage.getHabit(habitId);
+      if (!habit) {
+        return res.status(404).json({ message: "Habit not found" });
+      }
+      if (habit.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to delete this habit" });
+      }
+
+      await storage.deleteHabit(habitId);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // ====== HABIT COMPLETION ROUTES ======
+
+  // Toggle completion for a specific day
+  app.post("/api/habits/:id/completions", isAuthenticated, async (req, res, next) => {
+    try {
+      const habitId = req.params.id;
+      const userId = req.session.userId!;
+      const { date } = req.body; // Expected: ISO date string or "YYYY-MM-DD"
+
+      if (!date) {
+        return res.status(400).json({ message: "Date is required" });
+      }
+
+      // Verify habit belongs to user
+      const habit = await storage.getHabit(habitId);
+      if (!habit) {
+        return res.status(404).json({ message: "Habit not found" });
+      }
+      if (habit.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to modify this habit" });
+      }
+
+      const completionDate = parseDateToNoonUTC(date);
+      const completion = await storage.addCompletion(habitId, completionDate);
+      res.status(201).json(completion);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Remove completion for a specific day
+  app.delete("/api/habits/:id/completions", isAuthenticated, async (req, res, next) => {
+    try {
+      const habitId = req.params.id;
+      const userId = req.session.userId!;
+      const { date } = req.body; // Expected: ISO date string or "YYYY-MM-DD"
+
+      if (!date) {
+        return res.status(400).json({ message: "Date is required" });
+      }
+
+      // Verify habit belongs to user
+      const habit = await storage.getHabit(habitId);
+      if (!habit) {
+        return res.status(404).json({ message: "Habit not found" });
+      }
+      if (habit.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to modify this habit" });
+      }
+
+      const completionDate = parseDateToNoonUTC(date);
+      const removed = await storage.removeCompletion(habitId, completionDate);
+
+      if (removed) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ message: "Completion not found" });
+      }
+    } catch (error) {
+      next(error);
+    }
+  });
 }

@@ -25,7 +25,8 @@ export type User = typeof users.$inferSelect;
 export const habits = pgTable("habits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }), // Foreign key to users table
+  color: text("color").notNull().default("blue"),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -33,7 +34,30 @@ export const habits = pgTable("habits", {
 export const insertHabitSchema = createInsertSchema(habits).pick({
   name: true,
   userId: true,
+  color: true,
+});
+
+export const updateHabitSchema = z.object({
+  name: z.string().min(1).optional(),
+  color: z.string().optional(),
 });
 
 export type InsertHabit = z.infer<typeof insertHabitSchema>;
+export type UpdateHabit = z.infer<typeof updateHabitSchema>;
 export type Habit = typeof habits.$inferSelect;
+
+// Habit completions - tracks which days a habit was completed
+export const habitCompletions = pgTable("habit_completions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  habitId: varchar("habit_id").notNull().references(() => habits.id, { onDelete: "cascade" }),
+  completedDate: timestamp("completed_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHabitCompletionSchema = createInsertSchema(habitCompletions).pick({
+  habitId: true,
+  completedDate: true,
+});
+
+export type InsertHabitCompletion = z.infer<typeof insertHabitCompletionSchema>;
+export type HabitCompletion = typeof habitCompletions.$inferSelect;

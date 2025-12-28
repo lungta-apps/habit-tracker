@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ColorPicker from "./ColorPicker";
@@ -26,14 +26,31 @@ export default function HabitNameInput({
 }: HabitNameInputProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync local value when prop changes (e.g., after refetch)
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value);
+    }
+  }, [value, isFocused]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
+      setLocalValue(value); // Reset to original value
       inputRef.current?.blur();
     }
     if (e.key === "Enter") {
       inputRef.current?.blur();
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    // Only save if value changed
+    if (localValue !== value) {
+      onChange(localValue);
     }
   };
 
@@ -53,11 +70,11 @@ export default function HabitNameInput({
       <input
         ref={inputRef}
         type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onBlur={handleBlur}
         placeholder={placeholder}
         aria-label="Habit name"
         data-testid="input-habit-name"

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 
 interface MonthHeaderProps {
   currentDate: Date;
+  username?: string;
   onPreviousMonth: () => void;
   onNextMonth: () => void;
   onLogout: () => void;
@@ -11,6 +12,7 @@ interface MonthHeaderProps {
 
 export default function MonthHeader({
   currentDate,
+  username,
   onPreviousMonth,
   onNextMonth,
   onLogout,
@@ -19,7 +21,9 @@ export default function MonthHeader({
 
   return (
     <header className="flex items-center justify-between gap-4 py-8" role="banner">
-      <div className="w-10 h-10" />
+      <div className="text-sm text-muted-foreground min-w-32">
+        {username && <span>Logged in as <span className="font-medium text-foreground">{username}</span></span>}
+      </div>
       <div className="flex items-center justify-center gap-4">
         <Button
           variant="ghost"
