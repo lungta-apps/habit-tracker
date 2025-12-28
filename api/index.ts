@@ -1,19 +1,7 @@
 // api/index.ts
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
+import cookieSession from "cookie-session";
 import { registerRoutes } from "./routes.js";
-import { Pool, neonConfig } from '@neondatabase/serverless';
-
-// IMPORTANT: Configure neonConfig BEFORE creating any Pool instances
-// Vercel serverless doesn't support WebSockets, so we force HTTP mode
-// Use VERCEL env var (auto-set by Vercel) since NODE_ENV may not be set
-if (process.env.VERCEL) {
-  neonConfig.fetchConnectionCache = true; // Enable HTTP connection caching for serverless
-  neonConfig.useSecureWebSocket = false;
-  neonConfig.pipelineConnect = false;
-  neonConfig.webSocketConstructor = undefined;
-}
 
 const app = express();
 
@@ -35,39 +23,25 @@ if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET environment variable not set.");
 }
 
-const PgSession = ConnectPgSimple(session);
-
-// Initialize the pool for sessions with serverless-specific settings
-const sessionPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 1, // Critical for serverless
-  connectionTimeoutMillis: 10000, // Increase timeout
-  idleTimeoutMillis: 30000,
-});
-
+// Cookie-based sessions - no database connection needed
+// Session data is stored directly in an encrypted cookie
 app.use(
-  session({
-    store: new PgSession({
-      pool: sessionPool,
-      createTableIfMissing: false, // IMPORTANT: Don't create on every cold start
-      tableName: 'session', // Your existing table name
-    }),
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: !!process.env.VERCEL, // true on Vercel (HTTPS), false locally
-      httpOnly: true,
-      sameSite: 'lax',
-    },
+  cookieSession({
+    name: 'session',
+    keys: [process.env.SESSION_SECRET],
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    secure: !!process.env.VERCEL, // true on Vercel (HTTPS), false locally
+    httpOnly: true,
+    sameSite: 'lax',
   })
 );
 
-// Type augmentation for session must be available in this file as well
-declare module "express-session" {
-  interface SessionData {
-    userId: string;
+// Type augmentation for cookie-session
+declare global {
+  namespace CookieSessionInterfaces {
+    interface CookieSessionObject {
+      userId?: string;
+    }
   }
 }
 
