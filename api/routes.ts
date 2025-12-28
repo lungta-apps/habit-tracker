@@ -19,7 +19,7 @@ export async function registerRoutes(
 
   // Middleware to ensure user is authenticated
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.session.userId) {
+    if (req.session?.userId) {
       next();
     } else {
       res.status(401).json({ message: "You must be logged in to access this resource." });
@@ -87,16 +87,13 @@ export async function registerRoutes(
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Could not log out, please try again." });
-      }
-      res.status(200).json({ message: "Logout successful" });
-    });
+    // Clear the session by setting it to null
+    req.session = null;
+    res.status(200).json({ message: "Logout successful" });
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    if (!req.session.userId) {
+    if (!req.session?.userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 

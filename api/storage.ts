@@ -5,8 +5,8 @@ import { eq } from 'drizzle-orm';
 import * as schema from '../shared/schema.js';
 
 // Configure WebSocket for local development only
-// Production neonConfig is set in index.ts before any Pool is created
-if (process.env.NODE_ENV !== 'production') {
+// On Vercel, neonConfig is set in index.ts before any Pool is created
+if (!process.env.VERCEL) {
   // Dynamic import to avoid loading ws on Vercel
   import('ws').then((ws) => {
     neonConfig.webSocketConstructor = ws.default;
