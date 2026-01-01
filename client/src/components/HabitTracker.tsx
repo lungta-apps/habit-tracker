@@ -4,6 +4,8 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import MonthHeader from "./MonthHeader";
 import HabitGrid from "./HabitGrid";
+import CalendarView from "./CalendarView";
+import ViewSwitcher, { type ViewMode } from "./ViewSwitcher";
 import { useAuth } from "@/hooks/useAuth";
 
 export type HabitColor = "blue" | "green" | "purple" | "pink" | "orange" | "yellow" | "teal" | "red";
@@ -82,6 +84,7 @@ async function removeCompletion(habitId: string, date: string): Promise<void> {
 
 export default function HabitTracker() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentView, setCurrentView] = useState<ViewMode>("grid");
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -155,6 +158,13 @@ export default function HabitTracker() {
     createMutation.mutate({ name: "", color: "blue" });
   }, [createMutation]);
 
+  const handleAddHabitWithDetails = useCallback(
+    (name: string, color: HabitColor) => {
+      createMutation.mutate({ name, color });
+    },
+    [createMutation]
+  );
+
   const handleUpdateHabit = useCallback(
     (id: string, name: string) => {
       updateMutation.mutate({ id, data: { name } });
@@ -205,15 +215,28 @@ export default function HabitTracker() {
           onLogout={handleLogout}
         />
         <div className="pb-8">
-          <HabitGrid
-            habits={habits}
-            daysInMonth={daysInMonth}
-            onAddHabit={handleAddHabit}
-            onUpdateHabit={handleUpdateHabit}
-            onUpdateHabitColor={handleUpdateHabitColor}
-            onDeleteHabit={handleDeleteHabit}
-            onToggleDay={handleToggleDay}
-          />
+          <div className="mb-4">
+            <ViewSwitcher currentView={currentView} onViewChange={setCurrentView} />
+          </div>
+          {currentView === "grid" ? (
+            <HabitGrid
+              habits={habits}
+              daysInMonth={daysInMonth}
+              onAddHabit={handleAddHabit}
+              onUpdateHabit={handleUpdateHabit}
+              onUpdateHabitColor={handleUpdateHabitColor}
+              onDeleteHabit={handleDeleteHabit}
+              onToggleDay={handleToggleDay}
+            />
+          ) : (
+            <CalendarView
+              habits={habits}
+              currentDate={currentDate}
+              daysInMonth={daysInMonth}
+              onToggleDay={handleToggleDay}
+              onAddHabit={handleAddHabitWithDetails}
+            />
+          )}
         </div>
       </div>
       <div
