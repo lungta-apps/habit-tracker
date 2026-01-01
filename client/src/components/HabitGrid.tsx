@@ -58,7 +58,7 @@ export default function HabitGrid({
               aria-label="Habit tracking grid"
               className="grid rounded-lg border border-border bg-card"
               style={{
-                gridTemplateColumns: `minmax(180px, 200px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
+                gridTemplateColumns: `minmax(225px, 250px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
               }}
             >
               <div
