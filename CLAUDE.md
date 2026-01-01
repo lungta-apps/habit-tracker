@@ -43,7 +43,20 @@ api/              # Express backend (Vercel serverless entrypoint)
   storage.ts      # DrizzleStorage class implementing IStorage interface
 
 client/src/       # React frontend
-  components/     # App components (HabitTracker, HabitGrid, etc.)
+  components/     # App components
+    HabitTracker.tsx    # Main component, manages state/mutations, view switching
+    HabitGrid.tsx       # Default grid view (days as columns, habits as rows)
+    CalendarView.tsx    # Calendar view (7-column Mon-Sun grid)
+    CalendarDayCell.tsx # Calendar day cell with completion dots + popover
+    DayHabitList.tsx    # Popover content with habit checkboxes
+    ViewSwitcher.tsx    # Toggle between grid/calendar views
+    AddHabitDialog.tsx  # Popover dialog for adding habits with name/color
+    HabitRow.tsx        # Single habit row in grid view
+    HabitCell.tsx       # Day cell in grid view
+    HabitNameInput.tsx  # Editable habit name with color picker
+    ColorPicker.tsx     # Color selection popover
+    MonthHeader.tsx     # Header with month navigation and logout
+    ProtectedRoute.tsx  # Auth guard wrapper
   components/ui/  # shadcn/ui components (do not edit directly)
   pages/          # Route pages (LoginPage, RegisterPage, not-found)
   hooks/          # Custom hooks (useAuth, use-toast, use-mobile)
@@ -99,6 +112,14 @@ habit_completions
 `api/storage.ts` exports `IStorage` interface and `DrizzleStorage` implementation. Add new database operations by:
 1. Extending `IStorage` interface
 2. Implementing in `DrizzleStorage` class
+
+### Views
+
+The app supports two views for tracking habits, switchable via ViewSwitcher component:
+
+1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion.
+
+2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 
 ### Key Conventions
 
