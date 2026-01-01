@@ -6,7 +6,7 @@ import {
 } from "../shared/schema.js";
 import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, asc } from 'drizzle-orm';
 import * as schema from '../shared/schema.js';
 
 // Configure WebSocket for local development only
@@ -72,6 +72,7 @@ export class DrizzleStorage implements IStorage {
   async getHabits(userId: string): Promise<Habit[]> {
     return db.query.habits.findMany({
       where: eq(habits.userId, userId),
+      orderBy: [asc(habits.createdAt)],
     });
   }
 
