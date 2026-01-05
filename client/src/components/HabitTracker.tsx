@@ -222,6 +222,7 @@ export default function HabitTracker() {
             <HabitGrid
               habits={habits}
               daysInMonth={daysInMonth}
+              currentDate={currentDate}
               onAddHabit={handleAddHabit}
               onUpdateHabit={handleUpdateHabit}
               onUpdateHabitColor={handleUpdateHabitColor}

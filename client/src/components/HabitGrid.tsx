@@ -1,13 +1,18 @@
 import { Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { getDay } from "date-fns";
 import HabitRow from "./HabitRow";
 import { cn } from "@/lib/utils";
 import { Habit, HabitColor } from "./HabitTracker";
 
+// Day of week letters: Sunday=0 through Saturday=6
+const DAY_LETTERS = ["S", "M", "T", "W", "R", "F", "S"];
+
 interface HabitGridProps {
   habits: Habit[];
   daysInMonth: number;
+  currentDate: Date;
   onAddHabit: () => void;
   onUpdateHabit: (id: string, name: string) => void;
   onUpdateHabitColor: (id: string, color: HabitColor) => void;
@@ -18,6 +23,7 @@ interface HabitGridProps {
 export default function HabitGrid({
   habits,
   daysInMonth,
+  currentDate,
   onAddHabit,
   onUpdateHabit,
   onUpdateHabitColor,
@@ -25,6 +31,12 @@ export default function HabitGrid({
   onToggleDay,
 }: HabitGridProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  // Get day-of-week letter for a given day number in the current month
+  const getDayLetter = (day: number): string => {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    return DAY_LETTERS[getDay(date)];
+  };
 
   if (habits.length === 0) {
     return (
@@ -53,6 +65,24 @@ export default function HabitGrid({
     <div className="flex flex-col">
       <ScrollArea className="w-full pb-3" type="always">
         <div className="pb-3">
+          {/* Day-of-week letters row - above the grid */}
+          <div
+            className="grid mb-1"
+            style={{
+              gridTemplateColumns: `minmax(225px, 250px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
+            }}
+            aria-hidden="true"
+          >
+            <div className="sticky left-0 z-10" />
+            {days.map((day) => (
+              <div
+                key={day}
+                className="flex items-center justify-center text-[10px] text-muted-foreground/60"
+              >
+                {getDayLetter(day)}
+              </div>
+            ))}
+          </div>
           <div
               role="grid"
               aria-label="Habit tracking grid"
