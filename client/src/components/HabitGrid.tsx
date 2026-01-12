@@ -92,7 +92,7 @@ export default function HabitGrid({
               }}
             >
               <div
-                className="sticky left-0 z-10 h-10 flex items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/50 border-r border-b border-border/50"
+                className="sticky left-0 z-10 h-10 flex items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted border-r border-b border-border/50"
                 role="columnheader"
               >
                 Habit

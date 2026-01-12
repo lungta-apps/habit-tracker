@@ -117,7 +117,7 @@ habit_completions
 
 The app supports two views for tracking habits, switchable via ViewSwitcher component:
 
-1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference.
+1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling.
 
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 
