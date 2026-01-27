@@ -51,6 +51,7 @@ client/src/       # React frontend
     DayHabitList.tsx    # Popover content with habit checkboxes
     ViewSwitcher.tsx    # Toggle between grid/calendar views
     AddHabitDialog.tsx  # Popover dialog for adding habits with name/color
+    CopyHabitsDialog.tsx # Dialog for copying habits from previous month
     HabitRow.tsx        # Single habit row in grid view
     HabitCell.tsx       # Day cell in grid view
     HabitNameInput.tsx  # Editable habit name with color picker
@@ -78,6 +79,7 @@ habits
   - id (varchar, PK, UUID)
   - name (text)
   - color (text, default "blue")
+  - month (text, format "YYYY-MM") - habits are scoped to a specific month
   - userId (varchar, FK -> users.id, cascade delete)
   - createdAt (timestamp)
   - updatedAt (timestamp)
@@ -99,11 +101,11 @@ habit_completions
 
 1. **Authentication**: Cookie-based sessions via `cookie-session`. Session data (userId) stored in encrypted cookie. Routes protected by `isAuthenticated` middleware in `api/routes.ts`.
 
-2. **Habit Data**: Stored in PostgreSQL, fetched per-user via API. Frontend uses TanStack Query for caching and mutations.
+2. **Habit Data**: Stored in PostgreSQL, fetched per-user via API. Frontend uses TanStack Query for caching and mutations. Habits are month-scoped - each habit belongs to a specific month. Creating/deleting a habit only affects that month. When navigating to an empty month, users can copy habits from the previous month via CopyHabitsDialog.
 
 3. **API Routes** (all prefixed `/api`):
    - Auth: `POST /register`, `POST /login`, `POST /logout`, `GET /me`
-   - Habits: `GET /habits?month=YYYY-MM`, `POST /habits`, `PATCH /habits/:id`, `DELETE /habits/:id`
+   - Habits: `GET /habits?month=YYYY-MM`, `POST /habits`, `PATCH /habits/:id`, `DELETE /habits/:id`, `POST /habits/copy`
    - Completions: `POST /habits/:id/completions`, `DELETE /habits/:id/completions`
    - Debug: `GET /health-check`
 
