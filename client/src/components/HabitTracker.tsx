@@ -6,6 +6,7 @@ import MonthHeader from "./MonthHeader";
 import HabitGrid from "./HabitGrid";
 import CalendarView from "./CalendarView";
 import ViewSwitcher, { type ViewMode } from "./ViewSwitcher";
+import CopyHabitsDialog from "./CopyHabitsDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 export type HabitColor = "blue" | "green" | "purple" | "pink" | "orange" | "yellow" | "teal" | "red";
@@ -39,7 +40,7 @@ async function fetchHabits(month: string): Promise<Habit[]> {
   return response.json();
 }
 
-async function createHabit(data: { name: string; color: string }): Promise<Habit> {
+async function createHabit(data: { name: string; color: string; month: string }): Promise<Habit> {
   const response = await fetch("/api/habits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -82,14 +83,27 @@ async function removeCompletion(habitId: string, date: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to remove completion");
 }
 
+async function copyHabits(data: { habitIds: string[]; targetMonth: string }): Promise<Habit[]> {
+  const response = await fetch("/api/habits/copy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to copy habits");
+  return response.json();
+}
+
 export default function HabitTracker() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState<ViewMode>("grid");
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyDialogDismissed, setCopyDialogDismissed] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
   const monthKey = getMonthKey(currentDate);
+  const previousMonthKey = getMonthKey(subMonths(currentDate, 1));
   const daysInMonth = getDaysInMonth(currentDate);
 
   // Fetch habits for current month
@@ -97,6 +111,20 @@ export default function HabitTracker() {
     queryKey: ["habits", monthKey],
     queryFn: () => fetchHabits(monthKey),
   });
+
+  // Fetch previous month's habits (for copy dialog)
+  const { data: previousMonthHabits = [] } = useQuery({
+    queryKey: ["habits", previousMonthKey],
+    queryFn: () => fetchHabits(previousMonthKey),
+    enabled: habits.length === 0 && !isLoading, // Only fetch when current month is empty
+  });
+
+  // Show copy dialog when navigating to empty month with habits in previous month
+  const shouldShowCopyDialog =
+    !isLoading &&
+    habits.length === 0 &&
+    previousMonthHabits.length > 0 &&
+    copyDialogDismissed !== monthKey;
 
   // Mutations
   const createMutation = useMutation({
@@ -136,6 +164,26 @@ export default function HabitTracker() {
     },
   });
 
+  const copyMutation = useMutation({
+    mutationFn: (habitIds: string[]) => copyHabits({ habitIds, targetMonth: monthKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      setShowCopyDialog(false);
+    },
+  });
+
+  const handleCopyHabits = useCallback(
+    (habitIds: string[]) => {
+      copyMutation.mutate(habitIds);
+    },
+    [copyMutation]
+  );
+
+  const handleDismissCopyDialog = useCallback(() => {
+    setCopyDialogDismissed(monthKey);
+    setShowCopyDialog(false);
+  }, [monthKey]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -155,14 +203,14 @@ export default function HabitTracker() {
   }, []);
 
   const handleAddHabit = useCallback(() => {
-    createMutation.mutate({ name: "", color: "blue" });
-  }, [createMutation]);
+    createMutation.mutate({ name: "", color: "blue", month: monthKey });
+  }, [createMutation, monthKey]);
 
   const handleAddHabitWithDetails = useCallback(
     (name: string, color: HabitColor) => {
-      createMutation.mutate({ name, color });
+      createMutation.mutate({ name, color, month: monthKey });
     },
-    [createMutation]
+    [createMutation, monthKey]
   );
 
   const handleUpdateHabit = useCallback(
@@ -247,6 +295,15 @@ export default function HabitTracker() {
         data-testid="screen-reader-announcements"
       >
       </div>
+      <CopyHabitsDialog
+        open={shouldShowCopyDialog}
+        habits={previousMonthHabits}
+        sourceMonth={previousMonthKey}
+        targetMonth={monthKey}
+        onCopy={handleCopyHabits}
+        onDismiss={handleDismissCopyDialog}
+        isLoading={copyMutation.isPending}
+      />
     </main>
   );
 }

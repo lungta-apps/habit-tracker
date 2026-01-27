@@ -36,15 +36,16 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Habit methods
-  getHabits(userId: string): Promise<Habit[]>;
+  getHabits(userId: string, month: string): Promise<Habit[]>;
   getHabit(id: string): Promise<Habit | undefined>;
   createHabit(habit: InsertHabit): Promise<Habit>;
   updateHabit(id: string, updates: UpdateHabit): Promise<Habit | undefined>;
   deleteHabit(id: string): Promise<boolean>;
+  copyHabitsToMonth(habitIds: string[], targetMonth: string, userId: string): Promise<Habit[]>;
 
   // Habit completion methods
   getCompletionsForHabit(habitId: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]>;
-  getCompletionsForUser(userId: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]>;
+  getCompletionsForUser(userId: string, month: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]>;
   addCompletion(habitId: string, date: Date): Promise<HabitCompletion>;
   removeCompletion(habitId: string, date: Date): Promise<boolean>;
 }
@@ -69,9 +70,9 @@ export class DrizzleStorage implements IStorage {
   }
 
   // Habit methods
-  async getHabits(userId: string): Promise<Habit[]> {
+  async getHabits(userId: string, month: string): Promise<Habit[]> {
     return db.query.habits.findMany({
-      where: eq(habits.userId, userId),
+      where: and(eq(habits.userId, userId), eq(habits.month, month)),
       orderBy: [asc(habits.createdAt)],
     });
   }
@@ -100,6 +101,25 @@ export class DrizzleStorage implements IStorage {
     return result.length > 0;
   }
 
+  async copyHabitsToMonth(habitIds: string[], targetMonth: string, userId: string): Promise<Habit[]> {
+    const copiedHabits: Habit[] = [];
+
+    for (const habitId of habitIds) {
+      const sourceHabit = await this.getHabit(habitId);
+      if (sourceHabit && sourceHabit.userId === userId) {
+        const newHabit = await this.createHabit({
+          name: sourceHabit.name,
+          color: sourceHabit.color,
+          month: targetMonth,
+          userId: userId,
+        });
+        copiedHabits.push(newHabit);
+      }
+    }
+
+    return copiedHabits;
+  }
+
   // Habit completion methods
   async getCompletionsForHabit(habitId: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]> {
     return db.query.habitCompletions.findMany({
@@ -111,9 +131,9 @@ export class DrizzleStorage implements IStorage {
     });
   }
 
-  async getCompletionsForUser(userId: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]> {
-    // Get all habits for user, then get completions for those habits
-    const userHabits = await this.getHabits(userId);
+  async getCompletionsForUser(userId: string, month: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]> {
+    // Get all habits for user in the specified month, then get completions for those habits
+    const userHabits = await this.getHabits(userId, month);
     const habitIds = userHabits.map(h => h.id);
 
     if (habitIds.length === 0) return [];

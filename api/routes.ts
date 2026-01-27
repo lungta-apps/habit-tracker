@@ -146,10 +146,12 @@ export async function registerRoutes(
       const userId = req.session.userId!;
       const month = req.query.month as string; // Expected format: YYYY-MM
 
-      const habits = await storage.getHabits(userId);
+      // Use current month if not provided
+      const monthKey = month || format(new Date(), "yyyy-MM");
+      const habits = await storage.getHabits(userId, monthKey);
 
-      // Get the month date range (use current month if not provided)
-      const monthDate = month ? parseISO(`${month}-01`) : new Date();
+      // Get the month date range
+      const monthDate = parseISO(`${monthKey}-01`);
       const start = startOfMonth(monthDate);
       const end = endOfMonth(monthDate);
 
@@ -171,8 +173,12 @@ export async function registerRoutes(
   // Create a new habit
   app.post("/api/habits", isAuthenticated, async (req, res, next) => {
     try {
+      // Default to current month if not provided
+      const month = req.body.month || format(new Date(), "yyyy-MM");
+
       const parsed = insertHabitSchema.safeParse({
         ...req.body,
+        month,
         userId: req.session.userId!,
       });
 
@@ -232,6 +238,39 @@ export async function registerRoutes(
 
       await storage.deleteHabit(habitId);
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Copy habits from one month to another
+  app.post("/api/habits/copy", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const { habitIds, targetMonth } = req.body;
+
+      if (!habitIds || !Array.isArray(habitIds) || habitIds.length === 0) {
+        return res.status(400).json({ message: "habitIds array is required" });
+      }
+      if (!targetMonth || !/^\d{4}-\d{2}$/.test(targetMonth)) {
+        return res.status(400).json({ message: "targetMonth is required (format: YYYY-MM)" });
+      }
+
+      // Verify all habits belong to user
+      for (const habitId of habitIds) {
+        const habit = await storage.getHabit(habitId);
+        if (!habit) {
+          return res.status(404).json({ message: `Habit ${habitId} not found` });
+        }
+        if (habit.userId !== userId) {
+          return res.status(403).json({ message: "Not authorized to copy this habit" });
+        }
+      }
+
+      const copiedHabits = await storage.copyHabitsToMonth(habitIds, targetMonth, userId);
+      // Return with empty completedDays for consistency
+      const habitsWithCompletions = copiedHabits.map(h => ({ ...h, completedDays: [] }));
+      res.status(201).json(habitsWithCompletions);
     } catch (error) {
       next(error);
     }
