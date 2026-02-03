@@ -12,6 +12,10 @@ interface HabitRowProps {
   onHabitColorChange: (color: HabitColor) => void;
   onHabitDelete: () => void;
   onToggleDay: (day: number) => void;
+  onSetEndLine: (day: number) => void;
+  onSetCompletionValue: (day: number, value: number | null) => void;
+  completionValues: Record<number, number>;
+  endDay?: number;
   isLastRow?: boolean;
 }
 
@@ -25,6 +29,10 @@ export default function HabitRow({
   onHabitColorChange,
   onHabitDelete,
   onToggleDay,
+  onSetEndLine,
+  onSetCompletionValue,
+  completionValues,
+  endDay,
   isLastRow = false,
 }: HabitRowProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -44,10 +52,14 @@ export default function HabitRow({
           key={day}
           isCompleted={completedDays.includes(day)}
           onToggle={() => onToggleDay(day)}
+          onSetEndLine={() => onSetEndLine(day)}
+          isEndDay={day === endDay}
           habitName={habitName || "Unnamed habit"}
           dayNumber={day}
           color={habitColor}
           isLastRow={isLastRow}
+          numericValue={completionValues[day]}
+          onSetValue={(value) => onSetCompletionValue(day, value)}
         />
       ))}
     </div>

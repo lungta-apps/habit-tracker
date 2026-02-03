@@ -88,6 +88,7 @@ habit_completions
   - id (varchar, PK, UUID)
   - habitId (varchar, FK -> habits.id, cascade delete)
   - completedDate (timestamp, stored at noon UTC)
+  - value (integer, nullable) - optional numeric value (minutes, reps, etc.)
   - createdAt (timestamp)
 ```
 
@@ -106,7 +107,7 @@ habit_completions
 3. **API Routes** (all prefixed `/api`):
    - Auth: `POST /register`, `POST /login`, `POST /logout`, `GET /me`
    - Habits: `GET /habits?month=YYYY-MM`, `POST /habits`, `PATCH /habits/:id`, `DELETE /habits/:id`, `POST /habits/copy`
-   - Completions: `POST /habits/:id/completions`, `DELETE /habits/:id/completions`
+   - Completions: `POST /habits/:id/completions`, `PATCH /habits/:id/completions`, `DELETE /habits/:id/completions`
    - Debug: `GET /health-check`
 
 ### Storage Pattern
@@ -119,7 +120,7 @@ habit_completions
 
 The app supports two views for tracking habits, switchable via ViewSwitcher component:
 
-1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling.
+1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Double-click to toggle end line. Long-press (500ms) opens inline numeric input to enter a value (minutes, reps, etc.) that replaces the checkmark. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling.
 
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 

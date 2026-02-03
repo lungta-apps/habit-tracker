@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -27,6 +27,7 @@ export const habits = pgTable("habits", {
   name: text("name").notNull(),
   color: text("color").notNull().default("blue"),
   month: text("month").notNull().default("2026-01"),  // Format: "YYYY-MM"
+  endDay: integer("end_day"),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -42,6 +43,7 @@ export const insertHabitSchema = createInsertSchema(habits).pick({
 export const updateHabitSchema = z.object({
   name: z.string().min(1).optional(),
   color: z.string().optional(),
+  endDay: z.number().int().min(1).max(31).nullable().optional(),
 });
 
 export type InsertHabit = z.infer<typeof insertHabitSchema>;
@@ -53,6 +55,7 @@ export const habitCompletions = pgTable("habit_completions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   habitId: varchar("habit_id").notNull().references(() => habits.id, { onDelete: "cascade" }),
   completedDate: timestamp("completed_date").notNull(),
+  value: integer("value"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
