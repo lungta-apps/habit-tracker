@@ -15,7 +15,9 @@ export interface Habit {
   id: string;
   name: string;
   completedDays: number[];
+  completionValues?: Record<number, number>;
   color: HabitColor;
+  endDay?: number | null;
 }
 
 export const HABIT_COLORS: { value: HabitColor; label: string; bg: string; text: string }[] = [
@@ -50,7 +52,7 @@ async function createHabit(data: { name: string; color: string; month: string })
   return response.json();
 }
 
-async function updateHabit(id: string, data: { name?: string; color?: string }): Promise<Habit> {
+async function updateHabit(id: string, data: { name?: string; color?: string; endDay?: number | null }): Promise<Habit> {
   const response = await fetch(`/api/habits/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -65,13 +67,22 @@ async function deleteHabit(id: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete habit");
 }
 
-async function addCompletion(habitId: string, date: string): Promise<void> {
+async function addCompletion(habitId: string, date: string, value?: number): Promise<void> {
   const response = await fetch(`/api/habits/${habitId}/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ date }),
+    body: JSON.stringify({ date, value }),
   });
   if (!response.ok) throw new Error("Failed to add completion");
+}
+
+async function updateCompletionValue(habitId: string, date: string, value: number | null): Promise<void> {
+  const response = await fetch(`/api/habits/${habitId}/completions`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date, value }),
+  });
+  if (!response.ok) throw new Error("Failed to update completion value");
 }
 
 async function removeCompletion(habitId: string, date: string): Promise<void> {
@@ -135,7 +146,7 @@ export default function HabitTracker() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name?: string; color?: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; color?: string; endDay?: number | null } }) =>
       updateHabit(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
@@ -157,6 +168,26 @@ export default function HabitTracker() {
         await removeCompletion(habitId, dateStr);
       } else {
         await addCompletion(habitId, dateStr);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+    },
+  });
+
+  const setCompletionValueMutation = useMutation({
+    mutationFn: async ({ habitId, day, value }: { habitId: string; day: number; value: number | null }) => {
+      const dateStr = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), day), "yyyy-MM-dd");
+      const habit = habits.find((h) => h.id === habitId);
+      if (!habit) return;
+      const isCompleted = habit.completedDays.includes(day);
+
+      if (value === null && isCompleted) {
+        await removeCompletion(habitId, dateStr);
+      } else if (value !== null && !isCompleted) {
+        await addCompletion(habitId, dateStr, value);
+      } else if (value !== null && isCompleted) {
+        await updateCompletionValue(habitId, dateStr, value);
       }
     },
     onSuccess: () => {
@@ -234,6 +265,16 @@ export default function HabitTracker() {
     [deleteMutation]
   );
 
+  const handleSetEndLine = useCallback(
+    (id: string, day: number) => {
+      const habit = habits.find((h) => h.id === id);
+      if (!habit) return;
+      const endDay = habit.endDay === day ? null : day;
+      updateMutation.mutate({ id, data: { endDay } });
+    },
+    [habits, updateMutation]
+  );
+
   const handleToggleDay = useCallback(
     (habitId: string, day: number) => {
       const habit = habits.find((h) => h.id === habitId);
@@ -242,6 +283,13 @@ export default function HabitTracker() {
       toggleCompletionMutation.mutate({ habitId, day, isCompleted });
     },
     [habits, toggleCompletionMutation]
+  );
+
+  const handleSetCompletionValue = useCallback(
+    (habitId: string, day: number, value: number | null) => {
+      setCompletionValueMutation.mutate({ habitId, day, value });
+    },
+    [setCompletionValueMutation]
   );
 
   if (isLoading) {
@@ -276,6 +324,8 @@ export default function HabitTracker() {
               onUpdateHabitColor={handleUpdateHabitColor}
               onDeleteHabit={handleDeleteHabit}
               onToggleDay={handleToggleDay}
+              onSetEndLine={handleSetEndLine}
+              onSetCompletionValue={handleSetCompletionValue}
             />
           ) : (
             <CalendarView

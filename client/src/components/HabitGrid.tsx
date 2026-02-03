@@ -18,6 +18,8 @@ interface HabitGridProps {
   onUpdateHabitColor: (id: string, color: HabitColor) => void;
   onDeleteHabit: (id: string) => void;
   onToggleDay: (habitId: string, day: number) => void;
+  onSetEndLine: (habitId: string, day: number) => void;
+  onSetCompletionValue: (habitId: string, day: number, value: number | null) => void;
 }
 
 export default function HabitGrid({
@@ -29,6 +31,8 @@ export default function HabitGrid({
   onUpdateHabitColor,
   onDeleteHabit,
   onToggleDay,
+  onSetEndLine,
+  onSetCompletionValue,
 }: HabitGridProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -120,6 +124,10 @@ export default function HabitGrid({
                   onHabitColorChange={(color) => onUpdateHabitColor(habit.id, color)}
                   onHabitDelete={() => onDeleteHabit(habit.id)}
                   onToggleDay={(day) => onToggleDay(habit.id, day)}
+                  onSetEndLine={(day) => onSetEndLine(habit.id, day)}
+                  onSetCompletionValue={(day, value) => onSetCompletionValue(habit.id, day, value)}
+                  completionValues={habit.completionValues || {}}
+                  endDay={habit.endDay ?? undefined}
                   isLastRow={index === habits.length - 1}
                 />
               ))}

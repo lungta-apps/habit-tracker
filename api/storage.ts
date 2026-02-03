@@ -46,7 +46,8 @@ export interface IStorage {
   // Habit completion methods
   getCompletionsForHabit(habitId: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]>;
   getCompletionsForUser(userId: string, month: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]>;
-  addCompletion(habitId: string, date: Date): Promise<HabitCompletion>;
+  addCompletion(habitId: string, date: Date, value?: number): Promise<HabitCompletion>;
+  updateCompletionValue(habitId: string, date: Date, value: number | null): Promise<HabitCompletion | undefined>;
   removeCompletion(habitId: string, date: Date): Promise<boolean>;
 }
 
@@ -146,9 +147,24 @@ export class DrizzleStorage implements IStorage {
     return allCompletions;
   }
 
-  async addCompletion(habitId: string, date: Date): Promise<HabitCompletion> {
+  async addCompletion(habitId: string, date: Date, value?: number): Promise<HabitCompletion> {
     const result = await db.insert(habitCompletions)
-      .values({ habitId, completedDate: date })
+      .values({ habitId, completedDate: date, value: value ?? null })
+      .returning();
+    return result[0];
+  }
+
+  async updateCompletionValue(habitId: string, date: Date, value: number | null): Promise<HabitCompletion | undefined> {
+    const startOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+    const result = await db.update(habitCompletions)
+      .set({ value })
+      .where(and(
+        eq(habitCompletions.habitId, habitId),
+        gte(habitCompletions.completedDate, startOfDay),
+        lte(habitCompletions.completedDate, endOfDay)
+      ))
       .returning();
     return result[0];
   }
