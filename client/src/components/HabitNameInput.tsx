@@ -1,9 +1,15 @@
-import { X } from "lucide-react";
+import { X, GripVertical } from "lucide-react";
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ColorPicker from "./ColorPicker";
 import { HabitColor } from "./HabitTracker";
+import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
+
+interface DragHandleProps {
+  listeners?: SyntheticListenerMap;
+  attributes?: Record<string, any>;
+}
 
 interface HabitNameInputProps {
   value: string;
@@ -13,6 +19,7 @@ interface HabitNameInputProps {
   onDelete: () => void;
   placeholder?: string;
   isLastRow?: boolean;
+  dragHandleProps?: DragHandleProps;
 }
 
 export default function HabitNameInput({
@@ -23,6 +30,7 @@ export default function HabitNameInput({
   onDelete,
   placeholder = "New habit...",
   isLastRow = false,
+  dragHandleProps,
 }: HabitNameInputProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -67,6 +75,17 @@ export default function HabitNameInput({
       onMouseLeave={() => setIsHovered(false)}
       role="gridcell"
     >
+      {dragHandleProps && (
+        <button
+          type="button"
+          className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors touch-none"
+          aria-label="Drag to reorder"
+          {...dragHandleProps.listeners}
+          {...dragHandleProps.attributes}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <ColorPicker value={color} onChange={onColorChange} />
       <input
         ref={inputRef}

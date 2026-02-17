@@ -94,6 +94,15 @@ async function removeCompletion(habitId: string, date: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to remove completion");
 }
 
+async function reorderHabits(habitIds: string[]): Promise<void> {
+  const response = await fetch("/api/habits/reorder", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ habitIds }),
+  });
+  if (!response.ok) throw new Error("Failed to reorder habits");
+}
+
 async function copyHabits(data: { habitIds: string[]; targetMonth: string }): Promise<Habit[]> {
   const response = await fetch("/api/habits/copy", {
     method: "POST",
@@ -202,6 +211,36 @@ export default function HabitTracker() {
       setShowCopyDialog(false);
     },
   });
+
+  const reorderMutation = useMutation({
+    mutationFn: reorderHabits,
+    onMutate: (habitIds: string[]) => {
+      queryClient.cancelQueries({ queryKey: ["habits", monthKey] });
+      const previous = queryClient.getQueryData<Habit[]>(["habits", monthKey]);
+      if (previous) {
+        const reordered = habitIds
+          .map((id) => previous.find((h) => h.id === id))
+          .filter(Boolean) as Habit[];
+        queryClient.setQueryData(["habits", monthKey], reordered);
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["habits", monthKey], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+    },
+  });
+
+  const handleReorderHabits = useCallback(
+    (habitIds: string[]) => {
+      reorderMutation.mutate(habitIds);
+    },
+    [reorderMutation]
+  );
 
   const handleCopyHabits = useCallback(
     (habitIds: string[]) => {
@@ -326,6 +365,7 @@ export default function HabitTracker() {
               onToggleDay={handleToggleDay}
               onSetEndLine={handleSetEndLine}
               onSetCompletionValue={handleSetCompletionValue}
+              onReorderHabits={handleReorderHabits}
             />
           ) : (
             <CalendarView

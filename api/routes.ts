@@ -200,6 +200,34 @@ export async function registerRoutes(
     }
   });
 
+  // Reorder habits (must be before /api/habits/:id to avoid :id capturing "reorder")
+  app.patch("/api/habits/reorder", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const { habitIds } = req.body;
+
+      if (!habitIds || !Array.isArray(habitIds) || habitIds.length === 0) {
+        return res.status(400).json({ message: "habitIds array is required" });
+      }
+
+      // Verify all habits belong to the authenticated user
+      for (const habitId of habitIds) {
+        const habit = await storage.getHabit(habitId);
+        if (!habit) {
+          return res.status(404).json({ message: `Habit ${habitId} not found` });
+        }
+        if (habit.userId !== userId) {
+          return res.status(403).json({ message: "Not authorized to reorder this habit" });
+        }
+      }
+
+      await storage.reorderHabits(habitIds);
+      res.status(200).json({ message: "Habits reordered" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Update a habit
   app.patch("/api/habits/:id", isAuthenticated, async (req, res, next) => {
     try {

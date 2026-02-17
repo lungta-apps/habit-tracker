@@ -27,6 +27,7 @@ export const habits = pgTable("habits", {
   name: text("name").notNull(),
   color: text("color").notNull().default("blue"),
   month: text("month").notNull().default("2026-01"),  // Format: "YYYY-MM"
+  sortOrder: integer("sort_order").notNull().default(0),
   endDay: integer("end_day"),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),

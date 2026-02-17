@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import HabitNameInput from "./HabitNameInput";
 import HabitCell from "./HabitCell";
 import { HabitColor } from "./HabitTracker";
@@ -37,31 +39,59 @@ export default function HabitRow({
 }: HabitRowProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: habitId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  } as React.CSSProperties;
+
   return (
-    <div className="contents" role="row" data-testid={`row-habit-${habitId}`}>
-      <HabitNameInput
-        value={habitName}
-        color={habitColor}
-        onChange={onHabitNameChange}
-        onColorChange={onHabitColorChange}
-        onDelete={onHabitDelete}
-        isLastRow={isLastRow}
-      />
-      {days.map((day) => (
-        <HabitCell
-          key={day}
-          isCompleted={completedDays.includes(day)}
-          onToggle={() => onToggleDay(day)}
-          onSetEndLine={() => onSetEndLine(day)}
-          isEndDay={day === endDay}
-          habitName={habitName || "Unnamed habit"}
-          dayNumber={day}
+    <div
+      ref={setNodeRef}
+      style={style}
+      role="row"
+      data-testid={`row-habit-${habitId}`}
+    >
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: `minmax(225px, 250px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
+        }}
+      >
+        <HabitNameInput
+          value={habitName}
           color={habitColor}
+          onChange={onHabitNameChange}
+          onColorChange={onHabitColorChange}
+          onDelete={onHabitDelete}
           isLastRow={isLastRow}
-          numericValue={completionValues[day]}
-          onSetValue={(value) => onSetCompletionValue(day, value)}
+          dragHandleProps={{ listeners, attributes }}
         />
-      ))}
+        {days.map((day) => (
+          <HabitCell
+            key={day}
+            isCompleted={completedDays.includes(day)}
+            onToggle={() => onToggleDay(day)}
+            onSetEndLine={() => onSetEndLine(day)}
+            isEndDay={day === endDay}
+            habitName={habitName || "Unnamed habit"}
+            dayNumber={day}
+            color={habitColor}
+            isLastRow={isLastRow}
+            numericValue={completionValues[day]}
+            onSetValue={(value) => onSetCompletionValue(day, value)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
