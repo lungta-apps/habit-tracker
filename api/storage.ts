@@ -6,7 +6,7 @@ import {
 } from "../shared/schema.js";
 import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { eq, and, gte, lte, asc } from 'drizzle-orm';
+import { eq, and, gte, lte, asc, sql, max } from 'drizzle-orm';
 import * as schema from '../shared/schema.js';
 
 // Configure WebSocket for local development only
@@ -42,6 +42,7 @@ export interface IStorage {
   updateHabit(id: string, updates: UpdateHabit): Promise<Habit | undefined>;
   deleteHabit(id: string): Promise<boolean>;
   copyHabitsToMonth(habitIds: string[], targetMonth: string, userId: string): Promise<Habit[]>;
+  reorderHabits(habitIds: string[]): Promise<void>;
 
   // Habit completion methods
   getCompletionsForHabit(habitId: string, startDate: Date, endDate: Date): Promise<HabitCompletion[]>;
@@ -74,7 +75,7 @@ export class DrizzleStorage implements IStorage {
   async getHabits(userId: string, month: string): Promise<Habit[]> {
     return db.query.habits.findMany({
       where: and(eq(habits.userId, userId), eq(habits.month, month)),
-      orderBy: [asc(habits.createdAt)],
+      orderBy: [asc(habits.sortOrder), asc(habits.createdAt)],
     });
   }
 
@@ -85,7 +86,14 @@ export class DrizzleStorage implements IStorage {
   }
 
   async createHabit(habit: InsertHabit): Promise<Habit> {
-    const result = await db.insert(habits).values(habit).returning();
+    // Auto-assign sortOrder = max existing + 1 for this user+month
+    const [maxResult] = await db
+      .select({ maxSort: max(habits.sortOrder) })
+      .from(habits)
+      .where(and(eq(habits.userId, habit.userId), eq(habits.month, habit.month!)));
+    const nextSort = (maxResult?.maxSort ?? -1) + 1;
+
+    const result = await db.insert(habits).values({ ...habit, sortOrder: nextSort }).returning();
     return result[0];
   }
 
@@ -103,22 +111,37 @@ export class DrizzleStorage implements IStorage {
   }
 
   async copyHabitsToMonth(habitIds: string[], targetMonth: string, userId: string): Promise<Habit[]> {
-    const copiedHabits: Habit[] = [];
-
+    // Fetch source habits to get their sortOrder for preserving relative order
+    const sourceHabits: Habit[] = [];
     for (const habitId of habitIds) {
-      const sourceHabit = await this.getHabit(habitId);
-      if (sourceHabit && sourceHabit.userId === userId) {
-        const newHabit = await this.createHabit({
-          name: sourceHabit.name,
-          color: sourceHabit.color,
-          month: targetMonth,
-          userId: userId,
-        });
-        copiedHabits.push(newHabit);
-      }
+      const h = await this.getHabit(habitId);
+      if (h && h.userId === userId) sourceHabits.push(h);
+    }
+    // Sort by original sortOrder to preserve relative ordering
+    sourceHabits.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    const copiedHabits: Habit[] = [];
+    for (let i = 0; i < sourceHabits.length; i++) {
+      const src = sourceHabits[i];
+      const result = await db.insert(habits).values({
+        name: src.name,
+        color: src.color,
+        month: targetMonth,
+        userId: userId,
+        sortOrder: i,
+      }).returning();
+      copiedHabits.push(result[0]);
     }
 
     return copiedHabits;
+  }
+
+  async reorderHabits(habitIds: string[]): Promise<void> {
+    for (let i = 0; i < habitIds.length; i++) {
+      await db.update(habits)
+        .set({ sortOrder: i, updatedAt: new Date() })
+        .where(eq(habits.id, habitIds[i]));
+    }
   }
 
   // Habit completion methods

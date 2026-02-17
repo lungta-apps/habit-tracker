@@ -80,6 +80,7 @@ habits
   - name (text)
   - color (text, default "blue")
   - month (text, format "YYYY-MM") - habits are scoped to a specific month
+  - sortOrder (integer, default 0) - user-defined display order within a month
   - userId (varchar, FK -> users.id, cascade delete)
   - createdAt (timestamp)
   - updatedAt (timestamp)
@@ -106,7 +107,7 @@ habit_completions
 
 3. **API Routes** (all prefixed `/api`):
    - Auth: `POST /register`, `POST /login`, `POST /logout`, `GET /me`
-   - Habits: `GET /habits?month=YYYY-MM`, `POST /habits`, `PATCH /habits/:id`, `DELETE /habits/:id`, `POST /habits/copy`
+   - Habits: `GET /habits?month=YYYY-MM`, `POST /habits`, `PATCH /habits/reorder`, `PATCH /habits/:id`, `DELETE /habits/:id`, `POST /habits/copy`
    - Completions: `POST /habits/:id/completions`, `PATCH /habits/:id/completions`, `DELETE /habits/:id/completions`
    - Debug: `GET /health-check`
 
@@ -120,7 +121,7 @@ habit_completions
 
 The app supports two views for tracking habits, switchable via ViewSwitcher component:
 
-1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Double-click to toggle end line. Long-press (500ms) opens inline numeric input to enter a value (minutes, reps, etc.) that replaces the checkmark. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling.
+1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Double-click to toggle end line. Long-press (500ms) opens inline numeric input to enter a value (minutes, reps, etc.) that replaces the checkmark. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling. Drag-and-drop reordering via GripVertical handle on each row (uses @dnd-kit/core + @dnd-kit/sortable).
 
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 
@@ -146,3 +147,4 @@ Configured for Vercel:
 - **Cookie-session**: Session data stored in cookie, limited to ~4KB. Fine for storing just userId.
 - **Neon serverless**: Uses HTTP mode on Vercel (WebSockets not supported). Configured via `neonConfig` in `api/index.ts` and `api/storage.ts`.
 - **TanStack Query v5**: Uses `gcTime` (not `cacheTime`), no `onSuccess`/`onError` in useQuery.
+- **Express route ordering**: Static routes (e.g., `/api/habits/reorder`) must be registered BEFORE parameterized routes (e.g., `/api/habits/:id`), otherwise the param route captures the static segment.
