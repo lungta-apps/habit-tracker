@@ -19,6 +19,7 @@ interface HabitRowProps {
   completionValues: Record<number, number>;
   endDay?: number;
   isLastRow?: boolean;
+  nameColumnCollapsed?: boolean;
 }
 
 export default function HabitRow({
@@ -36,6 +37,7 @@ export default function HabitRow({
   completionValues,
   endDay,
   isLastRow = false,
+  nameColumnCollapsed = false,
 }: HabitRowProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -64,7 +66,7 @@ export default function HabitRow({
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `minmax(225px, 250px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
+          gridTemplateColumns: `${nameColumnCollapsed ? "32px" : "minmax(225px, 250px)"} repeat(${daysInMonth}, minmax(40px, 1fr))`,
         }}
       >
         <HabitNameInput
@@ -75,6 +77,7 @@ export default function HabitRow({
           onDelete={onHabitDelete}
           isLastRow={isLastRow}
           dragHandleProps={{ listeners, attributes }}
+          nameColumnCollapsed={nameColumnCollapsed}
         />
         {days.map((day) => (
           <HabitCell

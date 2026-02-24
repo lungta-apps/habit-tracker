@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { getDay } from "date-fns";
@@ -54,6 +54,22 @@ export default function HabitGrid({
 }: HabitGridProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [nameColumnCollapsed, setNameColumnCollapsed] = useState<boolean>(() => {
+    const stored = localStorage.getItem("habit-name-column-collapsed");
+    if (stored !== null) return stored === "true";
+    return window.innerWidth < 640;
+  });
+
+  const toggleNameColumn = () => {
+    setNameColumnCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("habit-name-column-collapsed", String(next));
+      return next;
+    });
+  };
+
+  const nameColWidth = nameColumnCollapsed ? "32px" : "minmax(225px, 250px)";
+  const gridTemplate = `${nameColWidth} repeat(${daysInMonth}, minmax(40px, 1fr))`;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -117,9 +133,7 @@ export default function HabitGrid({
           {/* Day-of-week letters row - above the grid */}
           <div
             className="grid mb-1"
-            style={{
-              gridTemplateColumns: `minmax(225px, 250px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
-            }}
+            style={{ gridTemplateColumns: gridTemplate }}
             aria-hidden="true"
           >
             <div className="sticky left-0 z-10" />
@@ -146,15 +160,28 @@ export default function HabitGrid({
               {/* Header row — standalone grid */}
               <div
                 className="grid"
-                style={{
-                  gridTemplateColumns: `minmax(225px, 250px) repeat(${daysInMonth}, minmax(40px, 1fr))`,
-                }}
+                style={{ gridTemplateColumns: gridTemplate }}
               >
                 <div
-                  className="sticky left-0 z-10 h-10 flex items-center px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted border-r border-b border-border/50"
+                  className="sticky left-0 z-10 h-10 flex items-center bg-muted border-r border-b border-border/50"
                   role="columnheader"
                 >
-                  Habit
+                  {!nameColumnCollapsed && (
+                    <span className="flex-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Habit
+                    </span>
+                  )}
+                  <button
+                    onClick={toggleNameColumn}
+                    className="h-10 w-full flex items-center justify-center shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    style={{ width: nameColumnCollapsed ? "32px" : "28px" }}
+                    aria-label={nameColumnCollapsed ? "Expand habit names" : "Collapse habit names"}
+                  >
+                    {nameColumnCollapsed
+                      ? <ChevronRight className="h-3 w-3" />
+                      : <ChevronLeft className="h-3 w-3" />
+                    }
+                  </button>
                 </div>
                 {days.map((day) => (
                   <div
@@ -187,6 +214,7 @@ export default function HabitGrid({
                     completionValues={habit.completionValues || {}}
                     endDay={habit.endDay ?? undefined}
                     isLastRow={index === habits.length - 1}
+                    nameColumnCollapsed={nameColumnCollapsed}
                   />
                 ))}
               </SortableContext>
