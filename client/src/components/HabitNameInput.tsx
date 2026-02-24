@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ColorPicker from "./ColorPicker";
-import { HabitColor } from "./HabitTracker";
+import { HabitColor, HABIT_COLORS } from "./HabitTracker";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 interface DragHandleProps {
@@ -20,6 +20,7 @@ interface HabitNameInputProps {
   placeholder?: string;
   isLastRow?: boolean;
   dragHandleProps?: DragHandleProps;
+  nameColumnCollapsed?: boolean;
 }
 
 export default function HabitNameInput({
@@ -31,6 +32,7 @@ export default function HabitNameInput({
   placeholder = "New habit...",
   isLastRow = false,
   dragHandleProps,
+  nameColumnCollapsed = false,
 }: HabitNameInputProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -61,6 +63,24 @@ export default function HabitNameInput({
       onChange(localValue);
     }
   };
+
+  if (nameColumnCollapsed) {
+    const colorBg = HABIT_COLORS.find((c) => c.value === color)?.bg ?? "bg-blue-500/20";
+    return (
+      <div
+        className={cn(
+          "sticky left-0 z-10 h-10",
+          "flex items-center justify-center",
+          "border-r border-border/50",
+          !isLastRow && "border-b",
+          "bg-card"
+        )}
+        role="gridcell"
+      >
+        <div className={cn("w-3 h-3 rounded-full", colorBg)} />
+      </div>
+    );
+  }
 
   return (
     <div

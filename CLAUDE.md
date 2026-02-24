@@ -121,7 +121,7 @@ habit_completions
 
 The app supports two views for tracking habits, switchable via ViewSwitcher component:
 
-1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Double-click to toggle end line. Long-press (500ms) opens inline numeric input to enter a value (minutes, reps, etc.) that replaces the checkmark. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling. Drag-and-drop reordering via GripVertical handle on each row (uses @dnd-kit/core + @dnd-kit/sortable).
+1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Double-click to toggle end line. Long-press (500ms) opens inline numeric input to enter a value (minutes, reps, etc.) that replaces the checkmark. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling. Drag-and-drop reordering via GripVertical handle on each row (uses @dnd-kit/core + @dnd-kit/sortable). Name column is collapsible via a chevron toggle in the header cell — collapses to 32px showing only the habit's colored dot. Auto-collapses on mobile (window.innerWidth < 640) by default. State persists in localStorage under key `habit-name-column-collapsed`.
 
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 
