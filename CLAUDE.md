@@ -133,6 +133,7 @@ The app supports two views for tracking habits, switchable via ViewSwitcher comp
 - **State**: TanStack Query for server state, React state for UI state.
 - **Validation**: Zod schemas in `shared/schema.ts`, used by both frontend forms and backend.
 - **Date Handling**: Store dates at noon UTC to avoid timezone issues. Use `getUTCDate()` when reading.
+- **Habit Colors**: 16 colors defined in `HabitTracker.tsx` (`HabitColor` type + `HABIT_COLORS` array). The 16 names are: `red, rose, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, purple, fuchsia, pink`. Organized into 4 rows of 4 in the color picker. Designed for maximum visual distinction: adjacent hues on the wheel are paired with contrasting shade levels (e.g., `rose-300` pale vs `red-500` vivid, `amber-600` dark gold vs `yellow-400` bright, `emerald-700` dark forest vs `green-500` vivid, `sky-300` pale vs `blue-500` vivid, `indigo-600` dark vs `purple-500` vivid). Three lookup tables must stay in sync: `HABIT_COLORS` in `HabitTracker.tsx`, `COLOR_SWATCHES` in `ColorPicker.tsx`, and `DOT_COLORS` in `CalendarDayCell.tsx`.
 
 ### Deployment
 

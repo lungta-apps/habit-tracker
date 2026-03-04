@@ -14,14 +14,22 @@ interface ColorPickerProps {
 }
 
 const COLOR_SWATCHES: Record<HabitColor, string> = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  purple: "bg-purple-500",
-  pink: "bg-pink-500",
-  orange: "bg-orange-500",
-  yellow: "bg-yellow-500",
-  teal: "bg-teal-500",
-  red: "bg-red-500",
+  red:     "bg-red-500",
+  rose:    "bg-rose-300",    // pale
+  orange:  "bg-orange-500",
+  amber:   "bg-amber-600",   // dark gold
+  yellow:  "bg-yellow-400",  // bright
+  lime:    "bg-lime-500",
+  green:   "bg-green-500",
+  emerald: "bg-emerald-700", // dark forest
+  teal:    "bg-teal-500",
+  cyan:    "bg-cyan-500",
+  sky:     "bg-sky-300",     // pale
+  blue:    "bg-blue-500",
+  indigo:  "bg-indigo-600",  // dark
+  purple:  "bg-purple-500",
+  fuchsia: "bg-fuchsia-500",
+  pink:    "bg-pink-500",
 };
 
 export default function ColorPicker({ value, onChange }: ColorPickerProps) {

@@ -9,7 +9,7 @@ import ViewSwitcher, { type ViewMode } from "./ViewSwitcher";
 import CopyHabitsDialog from "./CopyHabitsDialog";
 import { useAuth } from "@/hooks/useAuth";
 
-export type HabitColor = "blue" | "green" | "purple" | "pink" | "orange" | "yellow" | "teal" | "red";
+export type HabitColor = "red" | "rose" | "orange" | "amber" | "yellow" | "lime" | "green" | "emerald" | "teal" | "cyan" | "sky" | "blue" | "indigo" | "purple" | "fuchsia" | "pink";
 
 export interface Habit {
   id: string;
@@ -21,14 +21,26 @@ export interface Habit {
 }
 
 export const HABIT_COLORS: { value: HabitColor; label: string; bg: string; text: string }[] = [
-  { value: "blue", label: "Blue", bg: "bg-blue-500/20", text: "text-blue-400" },
-  { value: "green", label: "Green", bg: "bg-green-500/20", text: "text-green-400" },
-  { value: "purple", label: "Purple", bg: "bg-purple-500/20", text: "text-purple-400" },
-  { value: "pink", label: "Pink", bg: "bg-pink-500/20", text: "text-pink-400" },
-  { value: "orange", label: "Orange", bg: "bg-orange-500/20", text: "text-orange-400" },
-  { value: "yellow", label: "Yellow", bg: "bg-yellow-500/20", text: "text-yellow-400" },
-  { value: "teal", label: "Teal", bg: "bg-teal-500/20", text: "text-teal-400" },
-  { value: "red", label: "Red", bg: "bg-red-500/20", text: "text-red-400" },
+  // Row 1: reds & oranges — vivid paired with contrasting shades
+  { value: "red",     label: "Red",     bg: "bg-red-500/20",     text: "text-red-400" },
+  { value: "rose",    label: "Rose",    bg: "bg-rose-300/20",    text: "text-rose-400" },    // pale
+  { value: "orange",  label: "Orange",  bg: "bg-orange-500/20",  text: "text-orange-400" },
+  { value: "amber",   label: "Amber",   bg: "bg-amber-600/20",   text: "text-amber-400" },   // dark gold
+  // Row 2: yellows & greens
+  { value: "yellow",  label: "Yellow",  bg: "bg-yellow-400/20",  text: "text-yellow-300" },  // bright
+  { value: "lime",    label: "Lime",    bg: "bg-lime-500/20",    text: "text-lime-400" },
+  { value: "green",   label: "Green",   bg: "bg-green-500/20",   text: "text-green-400" },
+  { value: "emerald", label: "Emerald", bg: "bg-emerald-700/20", text: "text-emerald-400" }, // dark forest
+  // Row 3: teals & blues
+  { value: "teal",    label: "Teal",    bg: "bg-teal-500/20",    text: "text-teal-400" },
+  { value: "cyan",    label: "Cyan",    bg: "bg-cyan-500/20",    text: "text-cyan-400" },
+  { value: "sky",     label: "Sky",     bg: "bg-sky-300/20",     text: "text-sky-400" },     // pale
+  { value: "blue",    label: "Blue",    bg: "bg-blue-500/20",    text: "text-blue-400" },
+  // Row 4: purples & pinks
+  { value: "indigo",  label: "Indigo",  bg: "bg-indigo-600/20",  text: "text-indigo-400" },  // dark
+  { value: "purple",  label: "Purple",  bg: "bg-purple-500/20",  text: "text-purple-400" },
+  { value: "fuchsia", label: "Fuchsia", bg: "bg-fuchsia-500/20", text: "text-fuchsia-400" },
+  { value: "pink",    label: "Pink",    bg: "bg-pink-500/20",    text: "text-pink-400" },
 ];
 
 function getMonthKey(date: Date): string {
