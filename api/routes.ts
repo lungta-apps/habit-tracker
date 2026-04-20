@@ -2,7 +2,7 @@ import { type Request, type Response, type NextFunction, type Express } from "ex
 import bcrypt from "bcrypt";
 import { startOfMonth, endOfMonth, parseISO, format } from "date-fns";
 import { storage } from "./storage.js";
-import { insertHabitSchema, updateHabitSchema, authSchema } from "../shared/schema.js";
+import { insertHabitSchema, updateHabitSchema, authSchema, insertTimeBlockSchema, updateTimeBlockSchema } from "../shared/schema.js";
 
 // Helper to parse date string and set to noon UTC to avoid timezone issues
 function parseDateToNoonUTC(dateStr: string): Date {
@@ -367,6 +367,62 @@ export async function registerRoutes(
       } else {
         res.status(404).json({ message: "Completion not found" });
       }
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // ====== TIME BLOCK ROUTES ======
+
+  app.get("/api/time-blocks", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const date = req.query.date as string;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
+      }
+      const blocks = await storage.getTimeBlocks(userId, date);
+      res.json(blocks);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/time-blocks", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const parsed = insertTimeBlockSchema.safeParse({ ...req.body, userId });
+      if (!parsed.success) return res.status(400).json(parsed.error);
+      const block = await storage.createTimeBlock(parsed.data);
+      res.status(201).json(block);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch("/api/time-blocks/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const block = await storage.getTimeBlock(req.params.id);
+      if (!block) return res.status(404).json({ message: "Time block not found" });
+      if (block.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+      const parsed = updateTimeBlockSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json(parsed.error);
+      const updated = await storage.updateTimeBlock(req.params.id, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/time-blocks/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const block = await storage.getTimeBlock(req.params.id);
+      if (!block) return res.status(404).json({ message: "Time block not found" });
+      if (block.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteTimeBlock(req.params.id);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }

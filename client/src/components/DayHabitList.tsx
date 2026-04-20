@@ -10,14 +10,22 @@ interface DayHabitListProps {
 
 // Solid colors for indicator dots
 const DOT_COLORS: Record<HabitColor, string> = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  purple: "bg-purple-500",
-  pink: "bg-pink-500",
-  orange: "bg-orange-500",
-  yellow: "bg-yellow-500",
-  teal: "bg-teal-500",
-  red: "bg-red-500",
+  red:     "bg-red-500",
+  rose:    "bg-rose-300",
+  orange:  "bg-orange-500",
+  amber:   "bg-amber-600",
+  yellow:  "bg-yellow-400",
+  lime:    "bg-lime-500",
+  green:   "bg-green-500",
+  emerald: "bg-emerald-700",
+  teal:    "bg-teal-500",
+  cyan:    "bg-cyan-500",
+  sky:     "bg-sky-300",
+  blue:    "bg-blue-500",
+  indigo:  "bg-indigo-600",
+  purple:  "bg-purple-500",
+  fuchsia: "bg-fuchsia-500",
+  pink:    "bg-pink-500",
 };
 
 export default function DayHabitList({ day, habits, onToggleDay }: DayHabitListProps) {

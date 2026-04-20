@@ -2,7 +2,8 @@ import {
   type User, type InsertUser,
   type Habit, type InsertHabit, type UpdateHabit,
   type HabitCompletion, type InsertHabitCompletion,
-  users, habits, habitCompletions
+  type TimeBlock, type InsertTimeBlock, type UpdateTimeBlock,
+  users, habits, habitCompletions, timeBlocks
 } from "../shared/schema.js";
 import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -50,6 +51,13 @@ export interface IStorage {
   addCompletion(habitId: string, date: Date, value?: number): Promise<HabitCompletion>;
   updateCompletionValue(habitId: string, date: Date, value: number | null): Promise<HabitCompletion | undefined>;
   removeCompletion(habitId: string, date: Date): Promise<boolean>;
+
+  // Time block methods
+  getTimeBlock(id: string): Promise<TimeBlock | undefined>;
+  getTimeBlocks(userId: string, date: string): Promise<TimeBlock[]>;
+  createTimeBlock(block: InsertTimeBlock): Promise<TimeBlock>;
+  updateTimeBlock(id: string, updates: UpdateTimeBlock): Promise<TimeBlock | undefined>;
+  deleteTimeBlock(id: string): Promise<boolean>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -204,6 +212,33 @@ export class DrizzleStorage implements IStorage {
         lte(habitCompletions.completedDate, endOfDay)
       ))
       .returning();
+    return result.length > 0;
+  }
+
+  // Time block methods
+  async getTimeBlock(id: string): Promise<TimeBlock | undefined> {
+    return db.query.timeBlocks.findFirst({ where: eq(timeBlocks.id, id) });
+  }
+
+  async getTimeBlocks(userId: string, date: string): Promise<TimeBlock[]> {
+    return db.query.timeBlocks.findMany({
+      where: and(eq(timeBlocks.userId, userId), eq(timeBlocks.date, date)),
+      orderBy: [asc(timeBlocks.startMinute)],
+    });
+  }
+
+  async createTimeBlock(block: InsertTimeBlock): Promise<TimeBlock> {
+    const result = await db.insert(timeBlocks).values(block).returning();
+    return result[0];
+  }
+
+  async updateTimeBlock(id: string, updates: UpdateTimeBlock): Promise<TimeBlock | undefined> {
+    const result = await db.update(timeBlocks).set(updates).where(eq(timeBlocks.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTimeBlock(id: string): Promise<boolean> {
+    const result = await db.delete(timeBlocks).where(eq(timeBlocks.id, id)).returning();
     return result.length > 0;
   }
 }

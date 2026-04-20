@@ -7,6 +7,7 @@ import HabitGrid from "./HabitGrid";
 import CalendarView from "./CalendarView";
 import ViewSwitcher, { type ViewMode } from "./ViewSwitcher";
 import CopyHabitsDialog from "./CopyHabitsDialog";
+import TimeBlockPlanner from "./TimeBlockPlanner";
 import { useAuth } from "@/hooks/useAuth";
 
 export type HabitColor = "red" | "rose" | "orange" | "amber" | "yellow" | "lime" | "green" | "emerald" | "teal" | "cyan" | "sky" | "blue" | "indigo" | "purple" | "fuchsia" | "pink";
@@ -130,6 +131,7 @@ export default function HabitTracker() {
   const [currentView, setCurrentView] = useState<ViewMode>("grid");
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyDialogDismissed, setCopyDialogDismissed] = useState<string | null>(null);
+  const [plannerDate, setPlannerDate] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -343,6 +345,17 @@ export default function HabitTracker() {
     [setCompletionValueMutation]
   );
 
+  const handleDayHeaderClick = useCallback(
+    (day: number) => {
+      const dateStr = format(
+        new Date(currentDate.getFullYear(), currentDate.getMonth(), day),
+        "yyyy-MM-dd"
+      );
+      setPlannerDate(dateStr);
+    },
+    [currentDate]
+  );
+
   if (isLoading) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
@@ -352,7 +365,7 @@ export default function HabitTracker() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <MonthHeader
           currentDate={currentDate}
@@ -378,6 +391,7 @@ export default function HabitTracker() {
               onSetEndLine={handleSetEndLine}
               onSetCompletionValue={handleSetCompletionValue}
               onReorderHabits={handleReorderHabits}
+              onDayHeaderClick={handleDayHeaderClick}
             />
           ) : (
             <CalendarView
@@ -406,6 +420,13 @@ export default function HabitTracker() {
         onDismiss={handleDismissCopyDialog}
         isLoading={copyMutation.isPending}
       />
+      {plannerDate && (
+        <TimeBlockPlanner
+          date={plannerDate}
+          habits={habits}
+          onClose={() => setPlannerDate(null)}
+        />
+      )}
     </main>
   );
 }

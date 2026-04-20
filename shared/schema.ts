@@ -67,3 +67,37 @@ export const insertHabitCompletionSchema = createInsertSchema(habitCompletions).
 
 export type InsertHabitCompletion = z.infer<typeof insertHabitCompletionSchema>;
 export type HabitCompletion = typeof habitCompletions.$inferSelect;
+
+export const timeBlocks = pgTable("time_blocks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // "YYYY-MM-DD"
+  name: text("name").notNull(),
+  habitId: varchar("habit_id").references(() => habits.id, { onDelete: "set null" }),
+  startMinute: integer("start_minute").notNull(), // minutes from midnight
+  durationMinutes: integer("duration_minutes").notNull().default(60),
+  color: text("color").notNull().default("gray"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTimeBlockSchema = z.object({
+  userId: z.string(),
+  date: z.string(),
+  name: z.string().min(1),
+  habitId: z.string().nullable().optional(),
+  startMinute: z.number().int().min(0).max(1410),
+  durationMinutes: z.number().int().min(15).max(1440).default(60),
+  color: z.string().default("gray"),
+});
+
+export const updateTimeBlockSchema = z.object({
+  name: z.string().min(1).optional(),
+  habitId: z.string().nullable().optional(),
+  startMinute: z.number().int().min(0).max(1410).optional(),
+  durationMinutes: z.number().int().min(15).max(1440).optional(),
+  color: z.string().optional(),
+});
+
+export type InsertTimeBlock = z.infer<typeof insertTimeBlockSchema>;
+export type UpdateTimeBlock = z.infer<typeof updateTimeBlockSchema>;
+export type TimeBlock = typeof timeBlocks.$inferSelect;

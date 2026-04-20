@@ -37,6 +37,7 @@ interface HabitGridProps {
   onSetEndLine: (habitId: string, day: number) => void;
   onSetCompletionValue: (habitId: string, day: number, value: number | null) => void;
   onReorderHabits: (habitIds: string[]) => void;
+  onDayHeaderClick?: (day: number) => void;
 }
 
 export default function HabitGrid({
@@ -51,6 +52,7 @@ export default function HabitGrid({
   onSetEndLine,
   onSetCompletionValue,
   onReorderHabits,
+  onDayHeaderClick,
 }: HabitGridProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export default function HabitGrid({
             <div
               role="grid"
               aria-label="Habit tracking grid"
-              className="rounded-lg border border-border bg-card"
+              className="rounded-lg border border-zinc-700 bg-black"
             >
               {/* Header row — standalone grid */}
               <div
@@ -163,7 +165,7 @@ export default function HabitGrid({
                 style={{ gridTemplateColumns: gridTemplate }}
               >
                 <div
-                  className="sticky left-0 z-10 h-10 flex items-center bg-muted border-r border-b border-border/50"
+                  className="sticky left-0 z-10 h-10 flex items-center bg-[#111111] border-r border-b border-zinc-700"
                   role="columnheader"
                 >
                   {!nameColumnCollapsed && (
@@ -186,10 +188,14 @@ export default function HabitGrid({
                 {days.map((day) => (
                   <div
                     key={day}
-                    className="h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-muted/50 border-r border-b border-border/50 last:border-r-0"
+                    className={cn(
+                      "h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-[#111111] border-r border-b border-zinc-700 last:border-r-0",
+                      onDayHeaderClick && "cursor-pointer hover:bg-zinc-800 hover:text-foreground transition-colors"
+                    )}
                     role="columnheader"
                     aria-label={`Day ${day}`}
                     data-testid={`header-day-${day}`}
+                    onClick={() => onDayHeaderClick?.(day)}
                   >
                     {day}
                   </div>
@@ -221,7 +227,7 @@ export default function HabitGrid({
             </div>
             <DragOverlay>
               {activeHabit ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-md shadow-lg opacity-90">
+                <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-lg opacity-90">
                   <div
                     className={cn(
                       "w-3 h-3 rounded-full",
