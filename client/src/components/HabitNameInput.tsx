@@ -87,9 +87,9 @@ export default function HabitNameInput({
       className={cn(
         "group flex items-center h-10 px-2 gap-1",
         "sticky left-0 z-10",
-        "border-r border-border/50",
-        !isLastRow && "border-b",
-        "bg-card"
+        "border-r border-zinc-700",
+        !isLastRow && "border-b border-zinc-700",
+        "bg-black"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

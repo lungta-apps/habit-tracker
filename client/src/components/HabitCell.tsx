@@ -147,8 +147,8 @@ export default function HabitCell({
       data-testid={`cell-habit-${dayNumber}`}
       className={cn(
         "relative h-10 w-full min-w-10 flex items-center justify-center",
-        "border-r border-border/50",
-        !isLastRow && "border-b",
+        "border-r border-zinc-700",
+        !isLastRow && "border-b border-zinc-700",
         "transition-all duration-150 ease-out",
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
         "hover-elevate active-elevate-2",
@@ -169,7 +169,7 @@ export default function HabitCell({
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className="w-full h-full bg-background text-foreground text-xs text-center outline-none border-2 border-ring rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-full h-full bg-black text-foreground text-xs text-center outline-none border-2 border-ring rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       ) : (
         <>
