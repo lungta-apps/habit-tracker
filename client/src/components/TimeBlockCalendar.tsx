@@ -142,7 +142,6 @@ export default function TimeBlockCalendar({
 
   const startDrag = useCallback(
     (e: React.PointerEvent, blockId: string, type: DragState["type"]) => {
-      e.preventDefault();
       e.stopPropagation();
       const block = blocks.find((b) => b.id === blockId);
       if (!block) return;

@@ -58,6 +58,7 @@ function SidebarTaskItem({ task, onUpdate, onRemove }: SidebarTaskItemProps) {
   return (
     <div
       ref={setNodeRef}
+      style={{ touchAction: 'none' }}
       className={cn(
         "flex items-center gap-2 px-3 py-2 rounded-md border border-border/50 bg-card/50 group",
         isDragging ? "opacity-30" : "cursor-grab active:cursor-grabbing"
