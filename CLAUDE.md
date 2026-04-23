@@ -58,6 +58,9 @@ client/src/       # React frontend
     ColorPicker.tsx     # Color selection popover
     MonthHeader.tsx     # Header with month navigation and logout
     ProtectedRoute.tsx  # Auth guard wrapper
+    TimeBlockPlanner.tsx  # Full-screen daily time block planner modal; owns DndContext + sidebar/calendar layout
+    TimeBlockSidebar.tsx  # Left panel: task list with drag handles, add-task form, edit/delete/color menu
+    TimeBlockCalendar.tsx # Right panel: 24-hour scrollable grid; placed blocks support move/resize via pointer events
   components/ui/  # shadcn/ui components (do not edit directly)
   pages/          # Route pages (LoginPage, RegisterPage, not-found)
   hooks/          # Custom hooks (useAuth, use-toast, use-mobile)
@@ -91,6 +94,17 @@ habit_completions
   - completedDate (timestamp, stored at noon UTC)
   - value (integer, nullable) - optional numeric value (minutes, reps, etc.)
   - createdAt (timestamp)
+
+time_blocks
+  - id (varchar, PK, UUID)
+  - userId (varchar, FK -> users.id, cascade delete)
+  - date (text, "YYYY-MM-DD")
+  - name (text, notNull)
+  - habitId (varchar, FK -> habits.id, set null on delete, nullable)
+  - startMinute (integer, minutes from midnight)
+  - durationMinutes (integer, default 60)
+  - color (text, default "gray")
+  - createdAt (timestamp)
 ```
 
 ### Path Aliases
@@ -109,6 +123,7 @@ habit_completions
    - Auth: `POST /register`, `POST /login`, `POST /logout`, `GET /me`
    - Habits: `GET /habits?month=YYYY-MM`, `POST /habits`, `PATCH /habits/reorder`, `PATCH /habits/:id`, `DELETE /habits/:id`, `POST /habits/copy`
    - Completions: `POST /habits/:id/completions`, `PATCH /habits/:id/completions`, `DELETE /habits/:id/completions`
+   - Time Blocks: `GET /time-blocks?date=YYYY-MM-DD`, `POST /time-blocks`, `PATCH /time-blocks/:id`, `DELETE /time-blocks/:id`
    - Debug: `GET /health-check`
 
 ### Storage Pattern
@@ -124,6 +139,8 @@ The app supports two views for tracking habits, switchable via ViewSwitcher comp
 1. **Grid View** (default): Days as columns, habits as rows. Horizontal scroll for full month. Click cell to toggle completion. Double-click to toggle end line. Long-press (500ms) opens inline numeric input to enter a value (minutes, reps, etc.) that replaces the checkmark. Day-of-week letters (M, T, W, R, F, S, S) displayed above the grid as subtle reference. Habit name column is frozen (CSS sticky) so names remain visible while scrolling. Drag-and-drop reordering via GripVertical handle on each row (uses @dnd-kit/core + @dnd-kit/sortable). Name column is collapsible via a chevron toggle in the header cell — collapses to 32px showing only the habit's colored dot. Auto-collapses on mobile (window.innerWidth < 640) by default. State persists in localStorage under key `habit-name-column-collapsed`.
 
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
+
+3. **Time Block Planner**: Full-screen daily planner opened from the calendar. Left sidebar holds a task list; tasks are dragged onto a 24-hour scrollable grid on the right to create time blocks snapped to 15-minute increments. Placed blocks can be moved or resized via pointer drag, and tapped to reveal a color picker and delete button. Uses `@dnd-kit/core` with both `PointerSensor` (desktop) and `TouchSensor` (mobile, 250ms delay). Sidebar task items require `style={{ touchAction: 'none' }}` so the browser does not intercept touch events for scrolling before dnd-kit can register the drag. `e.preventDefault()` must NOT be called in `startDrag` inside `TimeBlockCalendar` — on touch devices it suppresses the subsequent click event, breaking tap-to-select; `select-none` CSS handles text-selection prevention instead.
 
 ### Key Conventions
 

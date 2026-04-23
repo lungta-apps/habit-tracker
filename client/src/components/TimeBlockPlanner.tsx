@@ -17,6 +17,9 @@ import TimeBlockSidebar, { type SidebarTask } from "./TimeBlockSidebar";
 import TimeBlockCalendar, { HOUR_HEIGHT, type TimeBlock } from "./TimeBlockCalendar";
 import { type Habit } from "./HabitTracker";
 
+const SCROLL_ZONE_PX = 80;
+const MAX_SCROLL_SPEED = 8;
+
 // API helpers
 async function fetchTimeBlocks(date: string): Promise<TimeBlock[]> {
   const res = await fetch(`/api/time-blocks?date=${date}`);
@@ -66,6 +69,11 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
   const previewMinuteRef = useRef<number | null>(null);
   const pointerYRef = useRef(0);
   const calendarGridRef = useRef<HTMLDivElement>(null);
+  const calendarScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll state for the sidebar drag
+  const autoScrollSpeedRef = useRef(0);
+  const autoScrollFrameRef = useRef<number | null>(null);
 
   // Track global pointer Y during any drag
   useEffect(() => {
@@ -115,6 +123,55 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
     return Math.max(0, Math.min(1410, Math.round((relY / HOUR_HEIGHT) * 60 / 15) * 15));
   }, []);
 
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollFrameRef.current !== null) {
+      cancelAnimationFrame(autoScrollFrameRef.current);
+      autoScrollFrameRef.current = null;
+    }
+    autoScrollSpeedRef.current = 0;
+  }, []);
+
+  // rAF loop that scrolls the calendar and keeps the preview snap up-to-date
+  const startAutoScrollLoop = useCallback(() => {
+    if (autoScrollFrameRef.current !== null) return;
+    const tick = () => {
+      const sc = calendarScrollRef.current;
+      if (!sc || autoScrollSpeedRef.current === 0) {
+        autoScrollFrameRef.current = null;
+        return;
+      }
+      sc.scrollTop += autoScrollSpeedRef.current;
+      // Recalculate preview after scroll since gridRect.top changed
+      const snapped = getSnappedMinute();
+      if (snapped !== previewMinuteRef.current) {
+        previewMinuteRef.current = snapped;
+        setPreviewMinute(snapped);
+      }
+      autoScrollFrameRef.current = requestAnimationFrame(tick);
+    };
+    autoScrollFrameRef.current = requestAnimationFrame(tick);
+  }, [getSnappedMinute]);
+
+  const updateAutoScroll = useCallback((clientY: number) => {
+    const sc = calendarScrollRef.current;
+    if (!sc) return;
+    const { top, bottom } = sc.getBoundingClientRect();
+    const fromBottom = bottom - clientY;
+    const fromTop = clientY - top;
+    let speed = 0;
+    if (fromBottom > 0 && fromBottom < SCROLL_ZONE_PX) {
+      speed = Math.ceil((1 - fromBottom / SCROLL_ZONE_PX) * MAX_SCROLL_SPEED);
+    } else if (fromTop > 0 && fromTop < SCROLL_ZONE_PX) {
+      speed = -Math.ceil((1 - fromTop / SCROLL_ZONE_PX) * MAX_SCROLL_SPEED);
+    }
+    autoScrollSpeedRef.current = speed;
+    if (speed !== 0) {
+      startAutoScrollLoop();
+    } else {
+      stopAutoScroll();
+    }
+  }, [startAutoScrollLoop, stopAutoScroll]);
+
   const handleDragStart = useCallback(
     ({ active }: DragStartEvent) => {
       const task = sidebarTasks.find((t) => t.id === active.id);
@@ -130,12 +187,14 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
         previewMinuteRef.current = snapped;
         setPreviewMinute(snapped);
       }
+      updateAutoScroll(pointerYRef.current);
     },
-    [getSnappedMinute]
+    [getSnappedMinute, updateAutoScroll]
   );
 
   const handleDragEnd = useCallback(
     ({ active }: DragEndEvent) => {
+      stopAutoScroll();
       setActiveSidebarTask(null);
       previewMinuteRef.current = null;
       setPreviewMinute(null);
@@ -157,7 +216,7 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
 
       setSidebarTasks((prev) => prev.filter((t) => t.id !== task.id));
     },
-    [getSnappedMinute, sidebarTasks, createMutation, date]
+    [getSnappedMinute, sidebarTasks, createMutation, date, stopAutoScroll]
   );
 
   const handleAddTask = useCallback((task: SidebarTask) => {
@@ -182,6 +241,17 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
   const handleDeleteBlock = useCallback(
     (id: string) => {
       deleteMutation.mutate(id);
+    },
+    [deleteMutation]
+  );
+
+  const handleReturnToSidebar = useCallback(
+    (block: TimeBlock) => {
+      deleteMutation.mutate(block.id);
+      setSidebarTasks((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), name: block.name, habitId: block.habitId, color: block.color },
+      ]);
     },
     [deleteMutation]
   );
@@ -221,8 +291,10 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
             blocks={timeBlocks}
             previewMinute={previewMinute}
             calendarGridRef={calendarGridRef}
+            scrollContainerRef={calendarScrollRef}
             onUpdateBlock={handleUpdateBlock}
             onDeleteBlock={handleDeleteBlock}
+            onReturnToSidebar={handleReturnToSidebar}
           />
           <DragOverlay dropAnimation={null}>
             {activeSidebarTask && (
