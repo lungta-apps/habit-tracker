@@ -6,6 +6,10 @@ import { type HabitColor, HABIT_COLORS } from "./HabitTracker";
 
 export const HOUR_HEIGHT = 64; // px per hour — 1 minute = HOUR_HEIGHT/60 px
 const PIXELS_PER_MINUTE = HOUR_HEIGHT / 60;
+const LONG_PRESS_MS = 400;
+const LONG_PRESS_CANCEL_DISTANCE = 8;
+const SCROLL_ZONE_PX = 80;   // distance from edge that activates auto-scroll
+const MAX_SCROLL_SPEED = 8;  // px per animation frame
 
 export interface TimeBlock {
   id: string;
@@ -22,7 +26,10 @@ export interface TimeBlock {
 interface DragState {
   blockId: string;
   type: "move" | "resize-top" | "resize-bottom";
-  startY: number;
+  // Grid-relative px anchor so position is correct even if the calendar scrolls.
+  // move/resize-top: distance from block's top edge to the touch point.
+  // resize-bottom:   distance from block's bottom edge to the touch point.
+  anchorPx: number;
   origStartMinute: number;
   origDuration: number;
 }
@@ -33,13 +40,43 @@ interface DragOverride {
   durationMinutes: number;
 }
 
+// Module-level helper — no component state needed
+function calcDragPosition(
+  gridY: number,
+  state: DragState
+): { newStart: number; newDuration: number } {
+  let newStart = state.origStartMinute;
+  let newDuration = state.origDuration;
+
+  if (state.type === "move") {
+    const rawMin = (gridY - state.anchorPx) / PIXELS_PER_MINUTE;
+    newStart = Math.max(0, Math.min(1410, Math.round(rawMin / 15) * 15));
+  } else if (state.type === "resize-top") {
+    const rawMin = (gridY - state.anchorPx) / PIXELS_PER_MINUTE;
+    newStart = Math.max(0, Math.round(rawMin / 15) * 15);
+    newDuration = state.origStartMinute + state.origDuration - newStart;
+    if (newDuration < 15) {
+      newStart = state.origStartMinute + state.origDuration - 15;
+      newDuration = 15;
+    }
+  } else if (state.type === "resize-bottom") {
+    const rawBottomMin = (gridY - state.anchorPx) / PIXELS_PER_MINUTE;
+    const rawDuration = rawBottomMin - state.origStartMinute;
+    newDuration = Math.max(
+      15,
+      Math.min(1440 - state.origStartMinute, Math.round(rawDuration / 15) * 15)
+    );
+  }
+
+  return { newStart, newDuration };
+}
+
 function formatHour(h: number): string {
   if (h === 0) return "12am";
   if (h === 12) return "12pm";
   return h < 12 ? `${h}am` : `${h - 12}pm`;
 }
 
-// Muted/dark bg colors for placed blocks — dark enough for white text on all
 const BLOCK_BG: Record<string, string> = {
   gray:    "bg-gray-600/80",
   red:     "bg-red-700/80",
@@ -72,90 +109,255 @@ interface Props {
   blocks: TimeBlock[];
   previewMinute: number | null;
   calendarGridRef: RefObject<HTMLDivElement>;
+  scrollContainerRef: RefObject<HTMLDivElement>;
   onUpdateBlock: (id: string, data: Partial<TimeBlock>) => void;
   onDeleteBlock: (id: string) => void;
+  onReturnToSidebar: (block: TimeBlock) => void;
 }
 
 export default function TimeBlockCalendar({
   blocks,
   previewMinute,
   calendarGridRef,
+  scrollContainerRef,
   onUpdateBlock,
   onDeleteBlock,
+  onReturnToSidebar,
 }: Props) {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragOverride, setDragOverrideState] = useState<DragOverride | null>(null);
   const dragOverrideRef = useRef<DragOverride | null>(null);
+  const suppressNextClickRef = useRef(false);
+
+  // Keep a live ref to blocks so handlePointerUp can read current data
+  const blocksRef = useRef(blocks);
+  useEffect(() => { blocksRef.current = blocks; });
+
+  // Tracks whether the pointer has left the grid leftward during a move drag.
+  // Ref drives the logic; state drives the visual diff.
+  const returningToSidebarRef = useRef(false);
+  const [returningToSidebar, setReturningToSidebar] = useState(false);
+  const setReturning = useCallback((val: boolean) => {
+    returningToSidebarRef.current = val;
+    setReturningToSidebar(val);
+  }, []);
+
+  // Auto-scroll state (refs so the rAF loop always sees current values)
+  const autoScrollSpeedRef = useRef(0);
+  const autoScrollFrameRef = useRef<number | null>(null);
+  const lastClientYRef = useRef(0);
+
+  // Long-press state for move drags
+  const longPressRef = useRef<{
+    timerId: ReturnType<typeof setTimeout>;
+    pointerId: number;
+    element: Element;
+    blockId: string;
+    anchorPx: number;
+    origStartMinute: number;
+    origDuration: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
 
   const setDragOverride = useCallback((val: DragOverride | null) => {
     dragOverrideRef.current = val;
     setDragOverrideState(val);
   }, []);
 
-  // Document-level pointer handlers active only during a drag
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollFrameRef.current !== null) {
+      cancelAnimationFrame(autoScrollFrameRef.current);
+      autoScrollFrameRef.current = null;
+    }
+    autoScrollSpeedRef.current = 0;
+  }, []);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current.timerId);
+      longPressRef.current = null;
+    }
+  }, []);
+
+  // Document-level pointer handlers + auto-scroll, active only during a drag
   useEffect(() => {
     if (!dragState) return;
 
+    // Start/update the rAF scroll loop based on pointer proximity to the edge.
+    // The loop also recalculates the block position on each frame so the block
+    // tracks the pointer smoothly while the container scrolls.
+    const tickAutoScroll = () => {
+      const sc = scrollContainerRef.current;
+      const grid = calendarGridRef.current;
+      if (!sc || autoScrollSpeedRef.current === 0) {
+        autoScrollFrameRef.current = null;
+        return;
+      }
+      sc.scrollTop += autoScrollSpeedRef.current;
+      if (grid) {
+        const gridY = lastClientYRef.current - grid.getBoundingClientRect().top;
+        const { newStart, newDuration } = calcDragPosition(gridY, dragState);
+        setDragOverride({ blockId: dragState.blockId, startMinute: newStart, durationMinutes: newDuration });
+      }
+      autoScrollFrameRef.current = requestAnimationFrame(tickAutoScroll);
+    };
+
+    const updateAutoScroll = (clientY: number) => {
+      const sc = scrollContainerRef.current;
+      if (!sc) return;
+      const { top, bottom } = sc.getBoundingClientRect();
+      const fromBottom = bottom - clientY;
+      const fromTop = clientY - top;
+      let speed = 0;
+      if (fromBottom > 0 && fromBottom < SCROLL_ZONE_PX) {
+        speed = Math.ceil((1 - fromBottom / SCROLL_ZONE_PX) * MAX_SCROLL_SPEED);
+      } else if (fromTop > 0 && fromTop < SCROLL_ZONE_PX) {
+        speed = -Math.ceil((1 - fromTop / SCROLL_ZONE_PX) * MAX_SCROLL_SPEED);
+      }
+      autoScrollSpeedRef.current = speed;
+      if (speed !== 0 && autoScrollFrameRef.current === null) {
+        autoScrollFrameRef.current = requestAnimationFrame(tickAutoScroll);
+      } else if (speed === 0) {
+        stopAutoScroll();
+      }
+    };
+
     const handlePointerMove = (e: PointerEvent) => {
-      const deltaY = e.clientY - dragState.startY;
-      const deltaMinRaw = deltaY / PIXELS_PER_MINUTE;
+      lastClientYRef.current = e.clientY;
+      const grid = calendarGridRef.current;
+      if (!grid) return;
+      const gridRect = grid.getBoundingClientRect();
 
-      let newStart = dragState.origStartMinute;
-      let newDuration = dragState.origDuration;
-
-      if (dragState.type === "move") {
-        newStart = Math.max(0, Math.min(1410, Math.round((dragState.origStartMinute + deltaMinRaw) / 15) * 15));
-      } else if (dragState.type === "resize-top") {
-        newStart = Math.max(0, Math.round((dragState.origStartMinute + deltaMinRaw) / 15) * 15);
-        newDuration = dragState.origStartMinute + dragState.origDuration - newStart;
-        if (newDuration < 15) {
-          newStart = dragState.origStartMinute + dragState.origDuration - 15;
-          newDuration = 15;
-        }
-      } else if (dragState.type === "resize-bottom") {
-        newDuration = Math.max(15, Math.round((dragState.origDuration + deltaMinRaw) / 15) * 15);
-        newDuration = Math.min(newDuration, 1440 - dragState.origStartMinute);
+      if (dragState.type === "move" && e.clientX < gridRect.left) {
+        // Pointer crossed left into the sidebar — flag as returning, freeze position
+        setReturning(true);
+        stopAutoScroll();
+        return;
       }
 
+      setReturning(false);
+      const gridY = e.clientY - gridRect.top;
+      const { newStart, newDuration } = calcDragPosition(gridY, dragState);
       setDragOverride({ blockId: dragState.blockId, startMinute: newStart, durationMinutes: newDuration });
+      updateAutoScroll(e.clientY);
     };
 
     const handlePointerUp = () => {
-      if (dragOverrideRef.current) {
+      stopAutoScroll();
+      suppressNextClickRef.current = true;
+      if (returningToSidebarRef.current) {
+        const block = blocksRef.current.find((b) => b.id === dragState.blockId);
+        if (block) onReturnToSidebar(block);
+      } else if (dragOverrideRef.current) {
         onUpdateBlock(dragOverrideRef.current.blockId, {
           startMinute: dragOverrideRef.current.startMinute,
           durationMinutes: dragOverrideRef.current.durationMinutes,
         });
       }
+      setReturning(false);
+      setDragState(null);
+      setDragOverride(null);
+    };
+
+    const handlePointerCancel = () => {
+      stopAutoScroll();
+      setReturning(false);
       setDragState(null);
       setDragOverride(null);
     };
 
     document.addEventListener("pointermove", handlePointerMove);
     document.addEventListener("pointerup", handlePointerUp);
+    document.addEventListener("pointercancel", handlePointerCancel);
     return () => {
+      stopAutoScroll();
+      setReturning(false);
       document.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("pointerup", handlePointerUp);
+      document.removeEventListener("pointercancel", handlePointerCancel);
     };
-  }, [dragState, onUpdateBlock, setDragOverride]);
+  }, [dragState, onUpdateBlock, onReturnToSidebar, setDragOverride, setReturning, calendarGridRef, scrollContainerRef, stopAutoScroll]);
 
-  const startDrag = useCallback(
-    (e: React.PointerEvent, blockId: string, type: DragState["type"]) => {
+  // Resize handles activate immediately — they are unambiguous drag targets
+  const startResizeDrag = useCallback(
+    (e: React.PointerEvent, blockId: string, type: "resize-top" | "resize-bottom") => {
       e.stopPropagation();
       const block = blocks.find((b) => b.id === blockId);
       if (!block) return;
+      const grid = calendarGridRef.current;
+      if (!grid) return;
+
+      const gridY = e.clientY - grid.getBoundingClientRect().top;
+      const edgePx = type === "resize-top"
+        ? block.startMinute * PIXELS_PER_MINUTE
+        : (block.startMinute + block.durationMinutes) * PIXELS_PER_MINUTE;
+
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
       setSelectedBlockId(null);
       setDragState({
         blockId,
         type,
-        startY: e.clientY,
+        anchorPx: gridY - edgePx,
         origStartMinute: block.startMinute,
         origDuration: block.durationMinutes,
       });
     },
-    [blocks]
+    [blocks, calendarGridRef]
   );
+
+  // Move drags require a long-press to avoid fighting the scroll gesture
+  const handleContentPointerDown = useCallback(
+    (e: React.PointerEvent, blockId: string) => {
+      e.stopPropagation();
+      const block = blocks.find((b) => b.id === blockId);
+      if (!block) return;
+      const grid = calendarGridRef.current;
+      if (!grid) return;
+
+      const gridY = e.clientY - grid.getBoundingClientRect().top;
+      const anchorPx = gridY - block.startMinute * PIXELS_PER_MINUTE;
+      const element = e.currentTarget as Element;
+      const pointerId = e.pointerId;
+
+      longPressRef.current = {
+        timerId: setTimeout(() => {
+          if (!longPressRef.current) return;
+          const lp = longPressRef.current;
+          longPressRef.current = null;
+          lp.element.setPointerCapture(lp.pointerId);
+          navigator.vibrate?.(30);
+          setSelectedBlockId(null);
+          setDragState({
+            blockId: lp.blockId,
+            type: "move",
+            anchorPx: lp.anchorPx,
+            origStartMinute: lp.origStartMinute,
+            origDuration: lp.origDuration,
+          });
+        }, LONG_PRESS_MS),
+        pointerId,
+        element,
+        blockId,
+        anchorPx,
+        origStartMinute: block.startMinute,
+        origDuration: block.durationMinutes,
+        startX: e.clientX,
+        startY: e.clientY,
+      };
+    },
+    [blocks, calendarGridRef]
+  );
+
+  const handleContentPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!longPressRef.current) return;
+    const dx = e.clientX - longPressRef.current.startX;
+    const dy = e.clientY - longPressRef.current.startY;
+    if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_CANCEL_DISTANCE) {
+      cancelLongPress();
+    }
+  }, [cancelLongPress]);
 
   const getBlockPosition = (block: TimeBlock) => {
     const override = dragOverride?.blockId === block.id ? dragOverride : null;
@@ -166,14 +368,18 @@ export default function TimeBlockCalendar({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-zinc-950" onClick={() => setSelectedBlockId(null)}>
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 overflow-y-auto bg-zinc-950"
+      onClick={() => setSelectedBlockId(null)}
+    >
       <div className="flex" style={{ height: 24 * HOUR_HEIGHT }}>
         {/* Time labels */}
         <div className="w-14 shrink-0 relative">
           {Array.from({ length: 24 }, (_, h) => (
             <div
               key={h}
-              className="absolute right-2 text-[10px] text-muted-foreground/50 leading-none"
+              className="absolute right-2 text-[10px] text-muted-foreground/80 leading-none"
               style={{ top: Math.max(2, h * HOUR_HEIGHT - 5) }}
             >
               {formatHour(h)}
@@ -186,16 +392,6 @@ export default function TimeBlockCalendar({
           ref={calendarGridRef}
           className="flex-1 relative border-l border-zinc-800"
         >
-
-          {/* Hour lines */}
-          {Array.from({ length: 24 }, (_, h) => (
-            <div
-              key={h}
-              className="absolute w-full border-t border-zinc-600"
-              style={{ top: h * HOUR_HEIGHT }}
-            />
-          ))}
-
           {/* Preview placeholder during sidebar drag */}
           {previewMinute !== null && (
             <div
@@ -214,7 +410,7 @@ export default function TimeBlockCalendar({
             const { startMinute, durationMinutes } = getBlockPosition(block);
             const isSelected = selectedBlockId === block.id;
             const isDragging = dragState?.blockId === block.id;
-            const bgClass = BLOCK_BG[block.color] ?? "bg-gray-600";
+            const bgClass = BLOCK_BG[block.color] ?? "bg-gray-600/80";
             const height = durationMinutes * PIXELS_PER_MINUTE;
 
             return (
@@ -223,23 +419,22 @@ export default function TimeBlockCalendar({
                 className={cn(
                   "absolute left-1 right-1 rounded-md overflow-hidden select-none transition-opacity",
                   bgClass,
-                  isDragging && "opacity-70"
+                  isDragging && !returningToSidebar && "opacity-70",
+                  isDragging && returningToSidebar && "opacity-30"
                 )}
                 style={{ top: startMinute * PIXELS_PER_MINUTE, height, zIndex: isSelected || isDragging ? 20 : 10 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (suppressNextClickRef.current) {
+                    suppressNextClickRef.current = false;
+                    return;
+                  }
                   setSelectedBlockId(isSelected ? null : block.id);
                 }}
               >
-                {/* Top resize handle */}
-                <div
-                  className="absolute top-0 left-0 right-0 h-2 cursor-n-resize"
-                  onPointerDown={(e) => startDrag(e, block.id, "resize-top")}
-                />
-
                 {/* Action bar shown when selected */}
                 {isSelected && (
-                  <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
+                  <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
                     <div
                       className="bg-black/30 rounded p-0.5"
                       onClick={(e) => e.stopPropagation()}
@@ -262,27 +457,52 @@ export default function TimeBlockCalendar({
                   </div>
                 )}
 
-                {/* Content — draggable to move the block */}
+                {/* Content — long-press to move the block */}
                 <div
-                  className="px-2 pt-2 pb-4 cursor-grab active:cursor-grabbing text-white"
-                  onPointerDown={(e) => startDrag(e, block.id, "move")}
+                  className="px-2 pt-5 pb-5 cursor-grab active:cursor-grabbing text-white"
+                  style={{ touchAction: "none" }}
+                  onPointerDown={(e) => handleContentPointerDown(e, block.id)}
+                  onPointerMove={handleContentPointerMove}
+                  onPointerUp={cancelLongPress}
+                  onPointerCancel={cancelLongPress}
                 >
                   <div className="text-xs font-semibold truncate leading-tight">{block.name}</div>
-                  {height >= 40 && (
+                  {height >= 48 && (
                     <div className="text-[10px] opacity-80 mt-0.5">
                       {minutesToLabel(startMinute)} – {minutesToLabel(startMinute + durationMinutes)}
                     </div>
                   )}
                 </div>
 
+                {/* Top resize handle */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-4 cursor-n-resize z-10 flex items-center justify-center"
+                  style={{ touchAction: "none" }}
+                  onPointerDown={(e) => startResizeDrag(e, block.id, "resize-top")}
+                >
+                  <div className="w-6 h-1 rounded-full bg-white/50 pointer-events-none" />
+                </div>
+
                 {/* Bottom resize handle */}
                 <div
-                  className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize"
-                  onPointerDown={(e) => startDrag(e, block.id, "resize-bottom")}
-                />
+                  className="absolute bottom-0 left-0 right-0 h-4 cursor-s-resize z-10 flex items-center justify-center bg-white/10"
+                  style={{ touchAction: "none" }}
+                  onPointerDown={(e) => startResizeDrag(e, block.id, "resize-bottom")}
+                >
+                  <div className="w-6 h-1 rounded-full bg-white/50 pointer-events-none" />
+                </div>
               </div>
             );
           })}
+
+          {/* Hour lines rendered above blocks so they don't bleed through transparent block backgrounds */}
+          {Array.from({ length: 24 }, (_, h) => (
+            <div
+              key={h}
+              className="absolute w-full border-t border-zinc-500 pointer-events-none"
+              style={{ top: h * HOUR_HEIGHT, zIndex: 25 }}
+            />
+          ))}
         </div>
       </div>
     </div>
