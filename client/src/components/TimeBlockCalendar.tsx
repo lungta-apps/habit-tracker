@@ -6,8 +6,8 @@ import { type HabitColor, HABIT_COLORS } from "./HabitTracker";
 
 export const HOUR_HEIGHT = 64; // px per hour — 1 minute = HOUR_HEIGHT/60 px
 const PIXELS_PER_MINUTE = HOUR_HEIGHT / 60;
-const LONG_PRESS_MS = 400;
-const LONG_PRESS_CANCEL_DISTANCE = 8;
+const LONG_PRESS_MS = 300;
+const LONG_PRESS_CANCEL_DISTANCE = 14;
 const SCROLL_ZONE_PX = 80;   // distance from edge that activates auto-scroll
 const MAX_SCROLL_SPEED = 8;  // px per animation frame
 
@@ -250,22 +250,24 @@ export default function TimeBlockCalendar({
       if (returningToSidebarRef.current) {
         const block = blocksRef.current.find((b) => b.id === dragState.blockId);
         if (block) onReturnToSidebar(block);
+        setDragOverride(null);
       } else if (dragOverrideRef.current) {
         onUpdateBlock(dragOverrideRef.current.blockId, {
           startMinute: dragOverrideRef.current.startMinute,
           durationMinutes: dragOverrideRef.current.durationMinutes,
         });
+        // Leave dragOverride in place — it holds the block at the dropped position
+        // until the blocks prop updates from the server (cleared by the useEffect below).
       }
       setReturning(false);
       setDragState(null);
-      setDragOverride(null);
     };
 
     const handlePointerCancel = () => {
       stopAutoScroll();
       setReturning(false);
       setDragState(null);
-      setDragOverride(null);
+      setDragOverride(null); // cancelled — revert to original position
     };
 
     document.addEventListener("pointermove", handlePointerMove);
@@ -279,6 +281,21 @@ export default function TimeBlockCalendar({
       document.removeEventListener("pointercancel", handlePointerCancel);
     };
   }, [dragState, onUpdateBlock, onReturnToSidebar, setDragOverride, setReturning, calendarGridRef, scrollContainerRef, stopAutoScroll]);
+
+  // Once the server-updated block prop matches the committed override, drop the override.
+  // This prevents the "bounce" where clearing the override before the mutation lands
+  // would snap the block back to its original position for one render.
+  useEffect(() => {
+    if (!dragOverride || dragState) return;
+    const block = blocks.find((b) => b.id === dragOverride.blockId);
+    if (
+      block &&
+      block.startMinute === dragOverride.startMinute &&
+      block.durationMinutes === dragOverride.durationMinutes
+    ) {
+      setDragOverride(null);
+    }
+  }, [blocks, dragOverride, dragState, setDragOverride]);
 
   // Resize handles activate immediately — they are unambiguous drag targets
   const startResizeDrag = useCallback(
@@ -417,8 +434,7 @@ export default function TimeBlockCalendar({
               <div
                 key={block.id}
                 className={cn(
-                  "absolute left-1 right-1 rounded-md overflow-hidden select-none transition-opacity",
-                  bgClass,
+                  "absolute left-1 right-1 rounded-md select-none transition-opacity",
                   isDragging && !returningToSidebar && "opacity-70",
                   isDragging && returningToSidebar && "opacity-30"
                 )}
@@ -432,64 +448,67 @@ export default function TimeBlockCalendar({
                   setSelectedBlockId(isSelected ? null : block.id);
                 }}
               >
-                {/* Action bar shown when selected */}
-                {isSelected && (
-                  <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
-                    <div
-                      className="bg-black/30 rounded p-0.5"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ColorPicker
-                        value={(block.color === "gray" ? "blue" : block.color) as HabitColor}
-                        onChange={(color) => onUpdateBlock(block.id, { color })}
-                      />
-                    </div>
-                    <button
-                      className="bg-black/30 rounded p-1 text-white hover:bg-black/50 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteBlock(block.id);
-                        setSelectedBlockId(null);
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Content — long-press to move the block */}
-                <div
-                  className="px-2 pt-5 pb-5 cursor-grab active:cursor-grabbing text-white"
-                  style={{ touchAction: "none" }}
-                  onPointerDown={(e) => handleContentPointerDown(e, block.id)}
-                  onPointerMove={handleContentPointerMove}
-                  onPointerUp={cancelLongPress}
-                  onPointerCancel={cancelLongPress}
-                >
-                  <div className="text-xs font-semibold truncate leading-tight">{block.name}</div>
-                  {height >= 48 && (
-                    <div className="text-[10px] opacity-80 mt-0.5">
-                      {minutesToLabel(startMinute)} – {minutesToLabel(startMinute + durationMinutes)}
+                {/* Inner container: bg color + overflow-hidden for rounded corners */}
+                <div className={cn("absolute inset-0 rounded-md overflow-hidden", bgClass)}>
+                  {/* Action bar shown when selected */}
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
+                      <div
+                        className="bg-black/30 rounded p-0.5"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ColorPicker
+                          value={(block.color === "gray" ? "blue" : block.color) as HabitColor}
+                          onChange={(color) => onUpdateBlock(block.id, { color })}
+                        />
+                      </div>
+                      <button
+                        className="bg-black/30 rounded p-1 text-white hover:bg-black/50 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteBlock(block.id);
+                          setSelectedBlockId(null);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
                   )}
+
+                  {/* Content — long-press to move the block */}
+                  <div
+                    className="absolute inset-0 px-2 py-2 cursor-grab active:cursor-grabbing text-white"
+                    style={{ touchAction: "none" }}
+                    onPointerDown={(e) => handleContentPointerDown(e, block.id)}
+                    onPointerMove={handleContentPointerMove}
+                    onPointerUp={cancelLongPress}
+                    onPointerCancel={cancelLongPress}
+                  >
+                    <div className="text-xs font-semibold truncate leading-tight">{block.name}</div>
+                    {height >= 48 && (
+                      <div className="text-[10px] opacity-80 mt-0.5">
+                        {minutesToLabel(startMinute)} – {minutesToLabel(startMinute + durationMinutes)}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Top resize handle */}
+                {/* Top resize handle — semicircle protruding above the block */}
                 <div
-                  className="absolute top-0 left-0 right-0 h-4 cursor-n-resize z-10 flex items-center justify-center"
+                  className="absolute -top-3 left-0 right-0 h-6 flex items-start justify-center cursor-n-resize z-10"
                   style={{ touchAction: "none" }}
                   onPointerDown={(e) => startResizeDrag(e, block.id, "resize-top")}
                 >
-                  <div className="w-6 h-1 rounded-full bg-white/50 pointer-events-none" />
+                  <div className="w-6 h-3 rounded-t-full bg-white/50 pointer-events-none" />
                 </div>
 
-                {/* Bottom resize handle */}
+                {/* Bottom resize handle — semicircle protruding below the block */}
                 <div
-                  className="absolute bottom-0 left-0 right-0 h-4 cursor-s-resize z-10 flex items-center justify-center bg-white/10"
+                  className="absolute -bottom-3 left-0 right-0 h-6 flex items-end justify-center cursor-s-resize z-10"
                   style={{ touchAction: "none" }}
                   onPointerDown={(e) => startResizeDrag(e, block.id, "resize-bottom")}
                 >
-                  <div className="w-6 h-1 rounded-full bg-white/50 pointer-events-none" />
+                  <div className="w-6 h-3 rounded-b-full bg-white/50 pointer-events-none" />
                 </div>
               </div>
             );
