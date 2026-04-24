@@ -140,7 +140,24 @@ The app supports two views for tracking habits, switchable via ViewSwitcher comp
 
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 
-3. **Time Block Planner**: Full-screen daily planner opened from the calendar. Left sidebar holds a task list; tasks are dragged onto a 24-hour scrollable grid on the right to create time blocks snapped to 15-minute increments. Placed blocks can be moved or resized via pointer drag, and tapped to reveal a color picker and delete button. Uses `@dnd-kit/core` with both `PointerSensor` (desktop) and `TouchSensor` (mobile, 250ms delay). Sidebar task items require `style={{ touchAction: 'none' }}` so the browser does not intercept touch events for scrolling before dnd-kit can register the drag. `e.preventDefault()` must NOT be called in `startDrag` inside `TimeBlockCalendar` — on touch devices it suppresses the subsequent click event, breaking tap-to-select; `select-none` CSS handles text-selection prevention instead.
+3. **Time Block Planner**: Full-screen daily planner opened from the calendar. Left sidebar holds a task list; tasks are dragged onto a 24-hour scrollable grid on the right to create time blocks snapped to 15-minute increments. Placed blocks can be moved (long-press) or resized (drag top/bottom handles), and tapped to reveal a color picker and delete button. Dragging a placed block left off the grid returns it to the sidebar. Uses `@dnd-kit/core` with both `PointerSensor` (desktop) and `TouchSensor` (mobile, 250ms delay). Sidebar task items require `style={{ touchAction: 'none' }}` so the browser does not intercept touch events for scrolling before dnd-kit can register the drag.
+
+   **Resize handles**: Rendered as semicircles that protrude outside the block's top/bottom edges. The outer block div has no `overflow-hidden`; an inner `absolute inset-0 rounded-md overflow-hidden` div holds the background and content. Handle touch zones are `absolute -top-3`/`-bottom-3` with `h-6` (24px) so they extend 12px outside the block edge. Visual is `w-6 h-3 rounded-t-full`/`rounded-b-full bg-white/50`.
+
+   **Mobile drag architecture (TimeBlockCalendar)**:
+   - Placed-block moves use a **300ms long-press** (`LONG_PRESS_MS`) to activate, preventing conflicts with scroll. Cancel distance is **14px** (`LONG_PRESS_CANCEL_DISTANCE`) — fingers drift ~10px on press so 8px was too tight and caused inconsistent grabs. Resize handles activate immediately (unambiguous target).
+   - `touch-action: none` is required on draggable content and resize handles.
+   - `setPointerCapture` is called on drag activation so pointer events route reliably even when the finger moves off the element.
+   - `pointercancel` must be handled alongside `pointerup` — the browser fires `pointercancel` instead of `pointerup` when it takes over a touch (scroll, dnd-kit cleanup). Without it, `dragState` is never cleared and every subsequent touch moves the block.
+   - Block position is calculated **absolutely** from the grid top: `gridY = e.clientY - calendarGridRef.current.getBoundingClientRect().top`. This stays correct even if the container scrolls mid-drag. Never use delta-from-startY as it goes stale when the container scrolls.
+   - `suppressNextClickRef` suppresses the synthetic click that fires after a completed drag, preventing accidental block selection.
+   - `blocksRef` keeps a live copy of the `blocks` prop so the `useEffect` closure can read current block data on `pointerup` without going stale.
+
+   **Drag commit / no-bounce pattern**: On `pointerup`, `dragOverride` is intentionally NOT cleared. It holds the block at the dropped position while the `onUpdateBlock` mutation is in flight. A separate `useEffect` watches the `blocks` prop and clears `dragOverride` only once the server-updated block matches the committed position. `pointercancel` still clears immediately (drag aborted — revert). This applies to both move and resize drags.
+
+   **Auto-scroll**: `calendarScrollRef` (created in `TimeBlockPlanner`, applied to the `overflow-y-auto` div in `TimeBlockCalendar`) is shared by both components. When the pointer enters an 80px zone at the top or bottom edge, a `requestAnimationFrame` loop scrolls the container and recalculates block/preview position each frame so the block tracks the pointer smoothly. Loop is torn down on `pointerup`, `pointercancel`, and `handleDragEnd`.
+
+   **Hour lines**: Rendered in a `pointer-events-none` overlay **above** placed blocks (z-index 25) so they don't bleed through the blocks' `/80` transparent backgrounds, which would create inconsistent brightness depending on block position relative to hour boundaries.
 
 ### Key Conventions
 
