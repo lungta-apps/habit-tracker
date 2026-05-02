@@ -51,7 +51,21 @@ The DOT (Do One Thing) project is a personal initiative to build small, focused 
 
 ## Screenshots
 
-*Coming soon.*
+**Grid view** — Habits and Projects tracked side by side. Each row is color-coded; cells show checkmarks or numeric values. A notes area sits below each section for monthly context.
+
+![Grid view](screenshots/grid-view.jpg)
+
+---
+
+**Calendar view** — A full month at a glance. Colored dots show which habits were completed each day; tap any date to check off habits for that day.
+
+![Calendar view](screenshots/calendar-view.jpg)
+
+---
+
+**Daily time block planner** — Tap any day header to open the planner. Add tasks on the left and drag them onto the 24-hour grid to block out your day in 15-minute increments.
+
+![Time block planner](screenshots/time-block-planner.jpg)
 
 ---
 
