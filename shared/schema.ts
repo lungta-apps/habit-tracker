@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -103,3 +103,17 @@ export const updateTimeBlockSchema = z.object({
 export type InsertTimeBlock = z.infer<typeof insertTimeBlockSchema>;
 export type UpdateTimeBlock = z.infer<typeof updateTimeBlockSchema>;
 export type TimeBlock = typeof timeBlocks.$inferSelect;
+
+// Month notes — one note per user per month per section ("habit" | "project")
+export const monthNotes = pgTable("month_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  month: text("month").notNull(),       // "YYYY-MM"
+  section: text("section").notNull(),   // "habit" | "project"
+  content: text("content").notNull().default(""),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  userMonthSection: uniqueIndex("month_notes_user_month_section_idx").on(t.userId, t.month, t.section),
+}));
+
+export type MonthNote = typeof monthNotes.$inferSelect;

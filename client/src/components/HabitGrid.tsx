@@ -19,6 +19,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import HabitRow from "./HabitRow";
+import MonthNoteInput from "./MonthNoteInput";
 import { cn } from "@/lib/utils";
 import { Habit, HabitColor, HABIT_COLORS } from "./HabitTracker";
 
@@ -266,6 +267,7 @@ export default function HabitGrid({
         <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
         Add habit
       </Button>
+      <MonthNoteInput currentDate={currentDate} section="habit" />
 
       {/* ===== SECTION DIVIDER ===== */}
       <div className="mt-10 mb-8 border-t border-zinc-700" />
@@ -325,6 +327,7 @@ export default function HabitGrid({
         <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
         Add project
       </Button>
+      <MonthNoteInput currentDate={currentDate} section="project" />
 
     </div>
   );
