@@ -20,6 +20,7 @@ interface HabitRowProps {
   endDay?: number;
   isLastRow?: boolean;
   nameColumnCollapsed?: boolean;
+  placeholder?: string;
 }
 
 export default function HabitRow({
@@ -38,6 +39,7 @@ export default function HabitRow({
   endDay,
   isLastRow = false,
   nameColumnCollapsed = false,
+  placeholder,
 }: HabitRowProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -78,6 +80,7 @@ export default function HabitRow({
           isLastRow={isLastRow}
           dragHandleProps={{ listeners, attributes }}
           nameColumnCollapsed={nameColumnCollapsed}
+          placeholder={placeholder}
         />
         {days.map((day) => (
           <HabitCell

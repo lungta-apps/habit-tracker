@@ -306,6 +306,7 @@ export default function HabitGrid({
                     endDay={habit.endDay ?? undefined}
                     isLastRow={index === projectItems.length - 1}
                     nameColumnCollapsed={nameColumnCollapsed}
+                    placeholder="New project..."
                   />
                 ))}
               </SortableContext>
