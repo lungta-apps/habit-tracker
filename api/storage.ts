@@ -137,6 +137,7 @@ export class DrizzleStorage implements IStorage {
         month: targetMonth,
         userId: userId,
         sortOrder: i,
+        itemType: src.itemType,
       }).returning();
       copiedHabits.push(result[0]);
     }

@@ -29,6 +29,7 @@ export const habits = pgTable("habits", {
   month: text("month").notNull().default("2026-01"),  // Format: "YYYY-MM"
   sortOrder: integer("sort_order").notNull().default(0),
   endDay: integer("end_day"),
+  itemType: text("item_type").notNull().default("habit"),  // "habit" | "project"
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -39,6 +40,7 @@ export const insertHabitSchema = createInsertSchema(habits).pick({
   userId: true,
   color: true,
   month: true,
+  itemType: true,
 });
 
 export const updateHabitSchema = z.object({

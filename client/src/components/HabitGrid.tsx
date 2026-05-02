@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { getDay } from "date-fns";
@@ -29,7 +29,7 @@ interface HabitGridProps {
   habits: Habit[];
   daysInMonth: number;
   currentDate: Date;
-  onAddHabit: () => void;
+  onAddHabit: (type: "habit" | "project") => void;
   onUpdateHabit: (id: string, name: string) => void;
   onUpdateHabitColor: (id: string, color: HabitColor) => void;
   onDeleteHabit: (id: string) => void;
@@ -55,7 +55,8 @@ export default function HabitGrid({
   onDayHeaderClick,
 }: HabitGridProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeHabitId, setActiveHabitId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [nameColumnCollapsed, setNameColumnCollapsed] = useState<boolean>(() => {
     const stored = localStorage.getItem("habit-name-column-collapsed");
     if (stored !== null) return stored === "true";
@@ -78,26 +79,8 @@ export default function HabitGrid({
     useSensor(KeyboardSensor)
   );
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = habits.findIndex((h) => h.id === active.id);
-    const newIndex = habits.findIndex((h) => h.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = [...habits.map((h) => h.id)];
-    reordered.splice(oldIndex, 1);
-    reordered.splice(newIndex, 0, active.id as string);
-    onReorderHabits(reordered);
-  };
-
-  const activeHabit = activeId ? habits.find((h) => h.id === activeId) : null;
+  const habitItems = habits.filter((h) => !h.itemType || h.itemType === "habit");
+  const projectItems = habits.filter((h) => h.itemType === "project");
 
   // Get day-of-week letter for a given day number in the current month
   const getDayLetter = (day: number): string => {
@@ -105,105 +88,149 @@ export default function HabitGrid({
     return DAY_LETTERS[getDay(date)];
   };
 
-  if (habits.length === 0) {
-    return (
-      <div 
-        className="flex flex-col items-center justify-center py-20 text-muted-foreground"
-        role="region"
-        aria-label="Empty habit tracker"
-      >
-        <Calendar className="h-12 w-12 mb-4 opacity-50" aria-hidden="true" />
-        <p className="text-lg mb-4" data-testid="text-empty-state">
-          Click any cell to track a habit
-        </p>
-        <Button 
-          onClick={onAddHabit} 
-          variant="outline"
-          data-testid="button-add-first-habit"
+  // Drag handlers for habits section
+  const handleHabitDragStart = (event: DragStartEvent) => {
+    setActiveHabitId(event.active.id as string);
+  };
+
+  const handleHabitDragEnd = (event: DragEndEvent) => {
+    setActiveHabitId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = habitItems.findIndex((h) => h.id === active.id);
+    const newIndex = habitItems.findIndex((h) => h.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = [...habitItems.map((h) => h.id)];
+    reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, active.id as string);
+    onReorderHabits([...reordered, ...projectItems.map((h) => h.id)]);
+  };
+
+  // Drag handlers for projects section
+  const handleProjectDragStart = (event: DragStartEvent) => {
+    setActiveProjectId(event.active.id as string);
+  };
+
+  const handleProjectDragEnd = (event: DragEndEvent) => {
+    setActiveProjectId(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = projectItems.findIndex((h) => h.id === active.id);
+    const newIndex = projectItems.findIndex((h) => h.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = [...projectItems.map((h) => h.id)];
+    reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, active.id as string);
+    onReorderHabits([...habitItems.map((h) => h.id), ...reordered]);
+  };
+
+  const activeHabit = activeHabitId ? habits.find((h) => h.id === activeHabitId) : null;
+  const activeProject = activeProjectId ? habits.find((h) => h.id === activeProjectId) : null;
+
+  const dayLettersRow = (
+    <div
+      className="grid mb-1"
+      style={{ gridTemplateColumns: gridTemplate }}
+      aria-hidden="true"
+    >
+      <div className="sticky left-0 z-10" />
+      {days.map((day) => (
+        <div
+          key={day}
+          className="flex items-center justify-center text-[10px] text-muted-foreground/60"
         >
-          <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
-          Add your first habit
-        </Button>
+          {getDayLetter(day)}
+        </div>
+      ))}
+    </div>
+  );
+
+  const headerRow = (
+    <div
+      className="grid"
+      style={{ gridTemplateColumns: gridTemplate }}
+    >
+      <div
+        className="sticky left-0 z-10 h-10 flex items-center bg-[#111111] border-r border-b border-zinc-700"
+        role="columnheader"
+      >
+        {!nameColumnCollapsed && (
+          <span className="flex-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Name
+          </span>
+        )}
+        <button
+          onClick={toggleNameColumn}
+          className="h-10 flex items-center justify-center shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          style={{ width: nameColumnCollapsed ? "32px" : "28px" }}
+          aria-label={nameColumnCollapsed ? "Expand names" : "Collapse names"}
+        >
+          {nameColumnCollapsed
+            ? <ChevronRight className="h-3 w-3" />
+            : <ChevronLeft className="h-3 w-3" />
+          }
+        </button>
       </div>
-    );
-  }
+      {days.map((day) => (
+        <div
+          key={day}
+          className={cn(
+            "h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-[#111111] border-r border-b border-zinc-700 last:border-r-0",
+            onDayHeaderClick && "cursor-pointer hover:bg-zinc-800 hover:text-foreground transition-colors"
+          )}
+          role="columnheader"
+          aria-label={`Day ${day}`}
+          data-testid={`header-day-${day}`}
+          onClick={() => onDayHeaderClick?.(day)}
+        >
+          {day}
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderDragOverlay = (activeItem: Habit | null | undefined) => (
+    <DragOverlay>
+      {activeItem ? (
+        <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-lg opacity-90">
+          <div
+            className={cn(
+              "w-3 h-3 rounded-full",
+              HABIT_COLORS.find((c) => c.value === activeItem.color)?.bg || "bg-blue-500/20"
+            )}
+          />
+          <span className="text-sm font-medium">{activeItem.name || "Unnamed"}</span>
+        </div>
+      ) : null}
+    </DragOverlay>
+  );
 
   return (
     <div className="flex flex-col">
+
+      {/* ===== HABITS SECTION ===== */}
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Habits</p>
       <ScrollArea className="w-full pb-3" type="always">
         <div className="pb-3">
-          {/* Day-of-week letters row - above the grid */}
-          <div
-            className="grid mb-1"
-            style={{ gridTemplateColumns: gridTemplate }}
-            aria-hidden="true"
-          >
-            <div className="sticky left-0 z-10" />
-            {days.map((day) => (
-              <div
-                key={day}
-                className="flex items-center justify-center text-[10px] text-muted-foreground/60"
-              >
-                {getDayLetter(day)}
-              </div>
-            ))}
-          </div>
+          {dayLettersRow}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+            onDragStart={handleHabitDragStart}
+            onDragEnd={handleHabitDragEnd}
           >
             <div
               role="grid"
               aria-label="Habit tracking grid"
               className="rounded-lg border border-zinc-700 bg-black"
             >
-              {/* Header row — standalone grid */}
-              <div
-                className="grid"
-                style={{ gridTemplateColumns: gridTemplate }}
-              >
-                <div
-                  className="sticky left-0 z-10 h-10 flex items-center bg-[#111111] border-r border-b border-zinc-700"
-                  role="columnheader"
-                >
-                  {!nameColumnCollapsed && (
-                    <span className="flex-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Habit
-                    </span>
-                  )}
-                  <button
-                    onClick={toggleNameColumn}
-                    className="h-10 w-full flex items-center justify-center shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                    style={{ width: nameColumnCollapsed ? "32px" : "28px" }}
-                    aria-label={nameColumnCollapsed ? "Expand habit names" : "Collapse habit names"}
-                  >
-                    {nameColumnCollapsed
-                      ? <ChevronRight className="h-3 w-3" />
-                      : <ChevronLeft className="h-3 w-3" />
-                    }
-                  </button>
-                </div>
-                {days.map((day) => (
-                  <div
-                    key={day}
-                    className={cn(
-                      "h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-[#111111] border-r border-b border-zinc-700 last:border-r-0",
-                      onDayHeaderClick && "cursor-pointer hover:bg-zinc-800 hover:text-foreground transition-colors"
-                    )}
-                    role="columnheader"
-                    aria-label={`Day ${day}`}
-                    data-testid={`header-day-${day}`}
-                    onClick={() => onDayHeaderClick?.(day)}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-              {/* Sortable rows — each row is a block-level element with its own grid */}
-              <SortableContext items={habits.map((h) => h.id)} strategy={verticalListSortingStrategy}>
-                {habits.map((habit, index) => (
+              {headerRow}
+              <SortableContext items={habitItems.map((h) => h.id)} strategy={verticalListSortingStrategy}>
+                {habitItems.map((habit, index) => (
                   <HabitRow
                     key={habit.id}
                     habitId={habit.id}
@@ -219,39 +246,85 @@ export default function HabitGrid({
                     onSetCompletionValue={(day, value) => onSetCompletionValue(habit.id, day, value)}
                     completionValues={habit.completionValues || {}}
                     endDay={habit.endDay ?? undefined}
-                    isLastRow={index === habits.length - 1}
+                    isLastRow={index === habitItems.length - 1}
                     nameColumnCollapsed={nameColumnCollapsed}
                   />
                 ))}
               </SortableContext>
             </div>
-            <DragOverlay>
-              {activeHabit ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-md shadow-lg opacity-90">
-                  <div
-                    className={cn(
-                      "w-3 h-3 rounded-full",
-                      HABIT_COLORS.find((c) => c.value === activeHabit.color)?.bg || "bg-blue-500/20"
-                    )}
-                  />
-                  <span className="text-sm font-medium">{activeHabit.name || "Unnamed habit"}</span>
-                </div>
-              ) : null}
-            </DragOverlay>
+            {renderDragOverlay(activeHabit)}
           </DndContext>
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-
       <Button
         variant="ghost"
-        onClick={onAddHabit}
+        onClick={() => onAddHabit("habit")}
         className="mt-4 self-start"
         data-testid="button-add-habit"
       >
         <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
         Add habit
       </Button>
+
+      {/* ===== SECTION DIVIDER ===== */}
+      <div className="mt-10 mb-8 border-t border-zinc-700" />
+
+      {/* ===== PROJECTS SECTION ===== */}
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Projects</p>
+      <ScrollArea className="w-full pb-3" type="always">
+        <div className="pb-3">
+          {dayLettersRow}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleProjectDragStart}
+            onDragEnd={handleProjectDragEnd}
+          >
+            <div
+              role="grid"
+              aria-label="Project tracking grid"
+              className="rounded-lg border border-zinc-700 bg-black"
+            >
+              {headerRow}
+              <SortableContext items={projectItems.map((h) => h.id)} strategy={verticalListSortingStrategy}>
+                {projectItems.map((habit, index) => (
+                  <HabitRow
+                    key={habit.id}
+                    habitId={habit.id}
+                    habitName={habit.name}
+                    habitColor={habit.color || "blue"}
+                    completedDays={habit.completedDays}
+                    daysInMonth={daysInMonth}
+                    onHabitNameChange={(name) => onUpdateHabit(habit.id, name)}
+                    onHabitColorChange={(color) => onUpdateHabitColor(habit.id, color)}
+                    onHabitDelete={() => onDeleteHabit(habit.id)}
+                    onToggleDay={(day) => onToggleDay(habit.id, day)}
+                    onSetEndLine={(day) => onSetEndLine(habit.id, day)}
+                    onSetCompletionValue={(day, value) => onSetCompletionValue(habit.id, day, value)}
+                    completionValues={habit.completionValues || {}}
+                    endDay={habit.endDay ?? undefined}
+                    isLastRow={index === projectItems.length - 1}
+                    nameColumnCollapsed={nameColumnCollapsed}
+                  />
+                ))}
+              </SortableContext>
+            </div>
+            {renderDragOverlay(activeProject)}
+          </DndContext>
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+      <Button
+        variant="ghost"
+        onClick={() => onAddHabit("project")}
+        className="mt-4 self-start"
+        data-testid="button-add-project"
+      >
+        <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
+        Add project
+      </Button>
+
     </div>
   );
 }

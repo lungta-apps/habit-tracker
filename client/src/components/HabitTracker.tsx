@@ -19,6 +19,7 @@ export interface Habit {
   completionValues?: Record<number, number>;
   color: HabitColor;
   endDay?: number | null;
+  itemType?: "habit" | "project";
 }
 
 export const HABIT_COLORS: { value: HabitColor; label: string; bg: string; text: string }[] = [
@@ -55,7 +56,7 @@ async function fetchHabits(month: string): Promise<Habit[]> {
   return response.json();
 }
 
-async function createHabit(data: { name: string; color: string; month: string }): Promise<Habit> {
+async function createHabit(data: { name: string; color: string; month: string; itemType?: string }): Promise<Habit> {
   const response = await fetch("/api/habits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -286,8 +287,8 @@ export default function HabitTracker() {
     setCurrentDate((prev) => addMonths(prev, 1));
   }, []);
 
-  const handleAddHabit = useCallback(() => {
-    createMutation.mutate({ name: "", color: "blue", month: monthKey });
+  const handleAddHabit = useCallback((type: "habit" | "project" = "habit") => {
+    createMutation.mutate({ name: "", color: "blue", month: monthKey, itemType: type });
   }, [createMutation, monthKey]);
 
   const handleAddHabitWithDetails = useCallback(
