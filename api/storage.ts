@@ -3,7 +3,8 @@ import {
   type Habit, type InsertHabit, type UpdateHabit,
   type HabitCompletion, type InsertHabitCompletion,
   type TimeBlock, type InsertTimeBlock, type UpdateTimeBlock,
-  users, habits, habitCompletions, timeBlocks
+  type MonthNote,
+  users, habits, habitCompletions, timeBlocks, monthNotes
 } from "../shared/schema.js";
 import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -58,6 +59,10 @@ export interface IStorage {
   createTimeBlock(block: InsertTimeBlock): Promise<TimeBlock>;
   updateTimeBlock(id: string, updates: UpdateTimeBlock): Promise<TimeBlock | undefined>;
   deleteTimeBlock(id: string): Promise<boolean>;
+
+  // Month note methods
+  getMonthNote(userId: string, month: string, section: string): Promise<MonthNote | undefined>;
+  upsertMonthNote(userId: string, month: string, section: string, content: string): Promise<void>;
 }
 
 export class DrizzleStorage implements IStorage {
@@ -137,6 +142,7 @@ export class DrizzleStorage implements IStorage {
         month: targetMonth,
         userId: userId,
         sortOrder: i,
+        itemType: src.itemType,
       }).returning();
       copiedHabits.push(result[0]);
     }
@@ -240,6 +246,26 @@ export class DrizzleStorage implements IStorage {
   async deleteTimeBlock(id: string): Promise<boolean> {
     const result = await db.delete(timeBlocks).where(eq(timeBlocks.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Month note methods
+  async getMonthNote(userId: string, month: string, section: string): Promise<MonthNote | undefined> {
+    return db.query.monthNotes.findFirst({
+      where: and(
+        eq(monthNotes.userId, userId),
+        eq(monthNotes.month, month),
+        eq(monthNotes.section, section)
+      ),
+    });
+  }
+
+  async upsertMonthNote(userId: string, month: string, section: string, content: string): Promise<void> {
+    await db.insert(monthNotes)
+      .values({ userId, month, section, content, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [monthNotes.userId, monthNotes.month, monthNotes.section],
+        set: { content, updatedAt: new Date() },
+      });
   }
 }
 

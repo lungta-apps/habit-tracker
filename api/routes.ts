@@ -372,6 +372,36 @@ export async function registerRoutes(
     }
   });
 
+  // ====== MONTH NOTE ROUTES ======
+
+  app.get("/api/notes", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const { month, section } = req.query as { month?: string; section?: string };
+      if (!month || !section) {
+        return res.status(400).json({ message: "month and section query params are required" });
+      }
+      const note = await storage.getMonthNote(userId, month, section);
+      res.json({ content: note?.content ?? "" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch("/api/notes", isAuthenticated, async (req, res, next) => {
+    try {
+      const userId = req.session.userId!;
+      const { month, section, content } = req.body;
+      if (!month || !section || content == null) {
+        return res.status(400).json({ message: "month, section, and content are required" });
+      }
+      await storage.upsertMonthNote(userId, month, section, String(content));
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // ====== TIME BLOCK ROUTES ======
 
   app.get("/api/time-blocks", isAuthenticated, async (req, res, next) => {

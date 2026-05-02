@@ -77,15 +77,15 @@ export default function CopyHabitsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onDismiss()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] flex flex-col max-h-[90svh] overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Copy habits to {formatMonth(targetMonth)}</DialogTitle>
           <DialogDescription>
             Select which habits from {formatMonth(sourceMonth)} you'd like to continue tracking.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto py-4">
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm text-muted-foreground">
               {selectedIds.size} of {habits.length} selected
@@ -100,7 +100,7 @@ export default function CopyHabitsDialog({
             </div>
           </div>
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-2">
             {habits.map((habit) => (
               <label
                 key={habit.id}
@@ -129,7 +129,7 @@ export default function CopyHabitsDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="shrink-0 flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onDismiss} className="sm:flex-1">
             Start fresh
           </Button>
