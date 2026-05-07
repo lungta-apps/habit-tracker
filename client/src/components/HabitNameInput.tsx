@@ -1,6 +1,7 @@
 import { X, GripVertical } from "lucide-react";
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import ColorPicker from "./ColorPicker";
 import { HabitColor, HABIT_COLORS } from "./HabitTracker";
@@ -10,6 +11,15 @@ interface DragHandleProps {
   listeners?: SyntheticListenerMap;
   attributes?: Record<string, any>;
 }
+
+const WEEKLY_OPTIONS: { label: string; value: number }[] = [
+  { label: "1×/wk", value: 1 },
+  { label: "2×/wk", value: 2 },
+  { label: "3×/wk", value: 3 },
+  { label: "4×/wk", value: 4 },
+  { label: "5×/wk", value: 5 },
+  { label: "6×/wk", value: 6 },
+];
 
 interface HabitNameInputProps {
   value: string;
@@ -21,6 +31,8 @@ interface HabitNameInputProps {
   isLastRow?: boolean;
   dragHandleProps?: DragHandleProps;
   nameColumnCollapsed?: boolean;
+  weeklyTarget?: number | null;
+  onWeeklyTargetChange?: (target: number | null) => void;
 }
 
 export default function HabitNameInput({
@@ -33,9 +45,12 @@ export default function HabitNameInput({
   isLastRow = false,
   dragHandleProps,
   nameColumnCollapsed = false,
+  weeklyTarget,
+  onWeeklyTargetChange,
 }: HabitNameInputProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [frequencyOpen, setFrequencyOpen] = useState(false);
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -125,6 +140,45 @@ export default function HabitNameInput({
           "min-w-0"
         )}
       />
+      {onWeeklyTargetChange && (
+        <Popover open={frequencyOpen} onOpenChange={setFrequencyOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Set weekly frequency goal"
+              className={cn(
+                "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none",
+                "transition-opacity duration-150",
+                "focus:outline-none focus:ring-1 focus:ring-ring",
+                weeklyTarget != null
+                  ? "bg-zinc-700 text-zinc-200 opacity-100"
+                  : cn("bg-zinc-800 text-zinc-500", isHovered || isFocused ? "opacity-100" : "opacity-0")
+              )}
+            >
+              {weeklyTarget != null ? `${weeklyTarget}×/wk` : "···"}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-1" align="start" side="bottom">
+            <div role="listbox" aria-label="Weekly frequency" className="flex flex-col gap-0.5">
+              {WEEKLY_OPTIONS.map((opt) => (
+                <button
+                  key={String(opt.value)}
+                  role="option"
+                  aria-selected={weeklyTarget === opt.value}
+                  onClick={() => { onWeeklyTargetChange(opt.value); setFrequencyOpen(false); }}
+                  className={cn(
+                    "w-full text-left px-3 py-1.5 rounded text-sm",
+                    "hover:bg-zinc-700 transition-colors",
+                    weeklyTarget === opt.value && "bg-zinc-700 font-medium"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
       <Button
         variant="ghost"
         size="icon"

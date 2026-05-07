@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -33,6 +33,7 @@ interface HabitGridProps {
   onAddHabit: (type: "habit" | "project") => void;
   onUpdateHabit: (id: string, name: string) => void;
   onUpdateHabitColor: (id: string, color: HabitColor) => void;
+  onUpdateHabitWeeklyTarget: (id: string, target: number | null) => void;
   onDeleteHabit: (id: string) => void;
   onToggleDay: (habitId: string, day: number) => void;
   onSetEndLine: (habitId: string, day: number) => void;
@@ -48,6 +49,7 @@ export default function HabitGrid({
   onAddHabit,
   onUpdateHabit,
   onUpdateHabitColor,
+  onUpdateHabitWeeklyTarget,
   onDeleteHabit,
   onToggleDay,
   onSetEndLine,
@@ -73,7 +75,21 @@ export default function HabitGrid({
   };
 
   const nameColWidth = nameColumnCollapsed ? "32px" : "minmax(225px, 250px)";
-  const gridTemplate = `${nameColWidth} repeat(${daysInMonth}, minmax(40px, 1fr))`;
+
+  // Sundays within the month (excluding the last day) mark week boundaries for separator columns
+  const sundayDays = useMemo(() => {
+    const sundays = new Set<number>();
+    for (let day = 1; day < daysInMonth; day++) {
+      if (getDay(new Date(currentDate.getFullYear(), currentDate.getMonth(), day)) === 0) {
+        sundays.add(day);
+      }
+    }
+    return sundays;
+  }, [currentDate, daysInMonth]);
+
+  const gridTemplate = `${nameColWidth} ${days
+    .map((day) => `minmax(40px, 1fr)${sundayDays.has(day) ? " 20px" : ""}`)
+    .join(" ")}`;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -140,12 +156,12 @@ export default function HabitGrid({
     >
       <div className="sticky left-0 z-10" />
       {days.map((day) => (
-        <div
-          key={day}
-          className="flex items-center justify-center text-[10px] text-muted-foreground/60"
-        >
-          {getDayLetter(day)}
-        </div>
+        <Fragment key={day}>
+          <div className="flex items-center justify-center text-[10px] text-muted-foreground/60">
+            {getDayLetter(day)}
+          </div>
+          {sundayDays.has(day) && <div />}
+        </Fragment>
       ))}
     </div>
   );
@@ -177,19 +193,23 @@ export default function HabitGrid({
         </button>
       </div>
       {days.map((day) => (
-        <div
-          key={day}
-          className={cn(
-            "h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-[#111111] border-r border-b border-zinc-700 last:border-r-0",
-            onDayHeaderClick && "cursor-pointer hover:bg-zinc-800 hover:text-foreground transition-colors"
+        <Fragment key={day}>
+          <div
+            className={cn(
+              "h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground bg-[#111111] border-r border-b border-zinc-700 last:border-r-0",
+              onDayHeaderClick && "cursor-pointer hover:bg-zinc-800 hover:text-foreground transition-colors"
+            )}
+            role="columnheader"
+            aria-label={`Day ${day}`}
+            data-testid={`header-day-${day}`}
+            onClick={() => onDayHeaderClick?.(day)}
+          >
+            {day}
+          </div>
+          {sundayDays.has(day) && (
+            <div className="h-10 bg-zinc-950 border-r border-b border-zinc-800" aria-hidden="true" />
           )}
-          role="columnheader"
-          aria-label={`Day ${day}`}
-          data-testid={`header-day-${day}`}
-          onClick={() => onDayHeaderClick?.(day)}
-        >
-          {day}
-        </div>
+        </Fragment>
       ))}
     </div>
   );
@@ -249,6 +269,9 @@ export default function HabitGrid({
                     endDay={habit.endDay ?? undefined}
                     isLastRow={index === habitItems.length - 1}
                     nameColumnCollapsed={nameColumnCollapsed}
+                    weeklyTarget={habit.weeklyTarget}
+                    onWeeklyTargetChange={(target) => onUpdateHabitWeeklyTarget(habit.id, target)}
+                    sundayDays={sundayDays}
                   />
                 ))}
               </SortableContext>
@@ -309,6 +332,9 @@ export default function HabitGrid({
                     isLastRow={index === projectItems.length - 1}
                     nameColumnCollapsed={nameColumnCollapsed}
                     placeholder="New project..."
+                    weeklyTarget={habit.weeklyTarget}
+                    onWeeklyTargetChange={(target) => onUpdateHabitWeeklyTarget(habit.id, target)}
+                    sundayDays={sundayDays}
                   />
                 ))}
               </SortableContext>

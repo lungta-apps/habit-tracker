@@ -54,7 +54,7 @@ client/src/       # React frontend
     CopyHabitsDialog.tsx # Dialog for copying habits from previous month
     HabitRow.tsx        # Single habit row in grid view
     HabitCell.tsx       # Day cell in grid view
-    HabitNameInput.tsx  # Editable habit name with color picker
+    HabitNameInput.tsx  # Editable habit name with color picker and weekly-frequency chip
     ColorPicker.tsx     # Color selection popover
     MonthHeader.tsx     # Header with month navigation and logout
     ProtectedRoute.tsx  # Auth guard wrapper
@@ -88,6 +88,7 @@ habits
   - month (text, format "YYYY-MM") - habits are scoped to a specific month
   - sortOrder (integer, default 0) - user-defined display order within a month
   - itemType (text, default "habit") - "habit" | "project"; separates the two grid sections
+  - weeklyTarget (integer, nullable) - null = daily habit; 1–6 = times-per-week goal
   - userId (varchar, FK -> users.id, cascade delete)
   - createdAt (timestamp)
   - updatedAt (timestamp)
@@ -152,11 +153,15 @@ The app supports two views for tracking habits, switchable via ViewSwitcher comp
 
 1. **Grid View** (default): Split into two independent sections — **Habits** (top) and **Projects** (bottom) — separated by a divider. Each section has its own scrollable grid, DndContext, add button, and `MonthNoteInput`. The distinction is stored as `itemType` ("habit" | "project") on the habit row. Both sections are identical in behavior: days as columns, rows as items, horizontal scroll, click to toggle completion, double-click to toggle end line, long-press (500ms) for numeric value input, sticky name column, drag-and-drop reordering. The name column collapse toggle (chevron) is shared across both sections via a single `nameColumnCollapsed` state (persisted in localStorage under key `habit-name-column-collapsed`). Auto-collapses on mobile (window.innerWidth < 640) by default. Reordering within a section sends the full combined ID list (section items first, other section items appended) so the server's `sortOrder` stays coherent across both groups.
 
+   **Per-week frequency goals**: Habits and projects can have an optional `weeklyTarget` (1–6). When set, a `Nx/wk` chip appears in the name column (inline between the text input and delete button); clicking it opens a popover to change the target. The grid inserts a 20px separator column after each Sunday. In separator cells for habits with a weekly target, a segmented bar (N equal segments with horizontal dividers) fills white from the bottom up as completions accumulate that week — empty segments are dark. Days in a week where the goal is already met render with a subtle dark tint and a `—` dash instead of the normal empty state. `sundayDays` is computed once in `HabitGrid` (via `useMemo`) and passed to each `HabitRow` so both the header rows and habit rows stay in sync on the same `gridTemplateColumns`.
+
 2. **Calendar View**: Standard 7-column calendar (Mon-Sun). Shows colored dots for completed habits. Click any date to open popover with habit checkboxes.
 
 3. **Time Block Planner**: Full-screen daily planner opened from the calendar. Left sidebar holds a task list; tasks are dragged onto a 24-hour scrollable grid on the right to create time blocks snapped to 15-minute increments. Placed blocks can be moved (long-press) or resized (drag top/bottom handles), and tapped to reveal a color picker and delete button. Dragging a placed block left off the grid returns it to the sidebar. Uses `@dnd-kit/core` with both `PointerSensor` (desktop) and `TouchSensor` (mobile, 250ms delay). Sidebar task items require `style={{ touchAction: 'none' }}` so the browser does not intercept touch events for scrolling before dnd-kit can register the drag.
 
-   **Resize handles**: Rendered as semicircles that protrude outside the block's top/bottom edges. The outer block div has no `overflow-hidden`; an inner `absolute inset-0 rounded-md overflow-hidden` div holds the background and content. Handle touch zones are `absolute -top-3`/`-bottom-3` with `h-6` (24px) so they extend 12px outside the block edge. Visual is `w-6 h-3 rounded-t-full`/`rounded-b-full bg-white/50`.
+   **Block styling**: Blocks use a transparent interior (`bg-black/40`) with a colored inset `box-shadow` (`inset 0 0 12px 4px <color>`) so the glow stays fully inside the block boundary and adjacent blocks don't bleed into each other. Colors are stored in `BLOCK_GLOW_COLOR` as CSS `rgba()` strings (required for `box-shadow`). The inner div is `absolute inset-0 rounded-md overflow-hidden` and holds the glow, action bar, and content.
+
+   **Resize handles**: Touch zones are `absolute -top-3`/`-bottom-3` with `h-6` (24px) so they extend 12px outside the block edge — invisible, no visual indicator. Users grab the block edge directly.
 
    **Mobile drag architecture (TimeBlockCalendar)**:
    - Placed-block moves use a **300ms long-press** (`LONG_PRESS_MS`) to activate, preventing conflicts with scroll. Cancel distance is **14px** (`LONG_PRESS_CANCEL_DISTANCE`) — fingers drift ~10px on press so 8px was too tight and caused inconsistent grabs. Resize handles activate immediately (unambiguous target).

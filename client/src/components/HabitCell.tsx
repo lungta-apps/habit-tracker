@@ -14,6 +14,7 @@ interface HabitCellProps {
   isLastRow?: boolean;
   numericValue?: number;
   onSetValue: (value: number | null) => void;
+  isWeekGoalMet?: boolean;
 }
 
 function getColorClasses(color: HabitColor) {
@@ -32,6 +33,7 @@ export default function HabitCell({
   isLastRow = false,
   numericValue,
   onSetValue,
+  isWeekGoalMet = false,
 }: HabitCellProps) {
   const colorClasses = getColorClasses(color);
   const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,7 +156,9 @@ export default function HabitCell({
         "hover-elevate active-elevate-2",
         isCompleted
           ? cn(colorClasses.bg, colorClasses.text)
-          : "bg-transparent text-muted-foreground/30 hover:text-muted-foreground/50"
+          : isWeekGoalMet
+            ? "bg-zinc-900/60 text-zinc-700"
+            : "bg-transparent text-muted-foreground/30 hover:text-muted-foreground/50"
       )}
     >
       {isEditing ? (
@@ -175,9 +179,11 @@ export default function HabitCell({
         <>
           {numericValue != null ? (
             <span className={cn("text-xs font-semibold", colorClasses.text)}>{numericValue}</span>
-          ) : (
-            isCompleted && <Check className="h-4 w-4" aria-hidden="true" />
-          )}
+          ) : isCompleted ? (
+            <Check className="h-4 w-4" aria-hidden="true" />
+          ) : isWeekGoalMet ? (
+            <span className="text-xs text-zinc-700">—</span>
+          ) : null}
         </>
       )}
       {isEndDay && <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-white/70" />}

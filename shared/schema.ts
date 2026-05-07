@@ -30,6 +30,7 @@ export const habits = pgTable("habits", {
   sortOrder: integer("sort_order").notNull().default(0),
   endDay: integer("end_day"),
   itemType: text("item_type").notNull().default("habit"),  // "habit" | "project"
+  weeklyTarget: integer("weekly_target"),  // null = daily habit; 1-7 = times per week goal
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -47,6 +48,7 @@ export const updateHabitSchema = z.object({
   name: z.string().min(1).optional(),
   color: z.string().optional(),
   endDay: z.number().int().min(1).max(31).nullable().optional(),
+  weeklyTarget: z.number().int().min(1).max(7).nullable().optional(),
 });
 
 export type InsertHabit = z.infer<typeof insertHabitSchema>;
