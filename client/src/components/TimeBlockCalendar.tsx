@@ -77,24 +77,24 @@ function formatHour(h: number): string {
   return h < 12 ? `${h}am` : `${h - 12}pm`;
 }
 
-const BLOCK_BG: Record<string, string> = {
-  gray:    "bg-gray-600/80",
-  red:     "bg-red-700/80",
-  rose:    "bg-rose-600/80",
-  orange:  "bg-orange-700/80",
-  amber:   "bg-amber-700/80",
-  yellow:  "bg-yellow-700/80",
-  lime:    "bg-lime-700/80",
-  green:   "bg-green-700/80",
-  emerald: "bg-emerald-800/80",
-  teal:    "bg-teal-700/80",
-  cyan:    "bg-cyan-700/80",
-  sky:     "bg-sky-700/80",
-  blue:    "bg-blue-700/80",
-  indigo:  "bg-indigo-700/80",
-  purple:  "bg-purple-700/80",
-  fuchsia: "bg-fuchsia-700/80",
-  pink:    "bg-pink-700/80",
+const BLOCK_GLOW_COLOR: Record<string, string> = {
+  gray:    "rgba(113, 113, 122, 0.85)",
+  red:     "rgba(239, 68, 68, 0.85)",
+  rose:    "rgba(244, 63, 94, 0.85)",
+  orange:  "rgba(249, 115, 22, 0.85)",
+  amber:   "rgba(245, 158, 11, 0.85)",
+  yellow:  "rgba(234, 179, 8, 0.85)",
+  lime:    "rgba(132, 204, 22, 0.85)",
+  green:   "rgba(34, 197, 94, 0.85)",
+  emerald: "rgba(16, 185, 129, 0.85)",
+  teal:    "rgba(20, 184, 166, 0.85)",
+  cyan:    "rgba(6, 182, 212, 0.85)",
+  sky:     "rgba(14, 165, 233, 0.85)",
+  blue:    "rgba(59, 130, 246, 0.85)",
+  indigo:  "rgba(99, 102, 241, 0.85)",
+  purple:  "rgba(168, 85, 247, 0.85)",
+  fuchsia: "rgba(217, 70, 239, 0.85)",
+  pink:    "rgba(236, 72, 153, 0.85)",
 };
 
 function minutesToLabel(m: number): string {
@@ -427,7 +427,7 @@ export default function TimeBlockCalendar({
             const { startMinute, durationMinutes } = getBlockPosition(block);
             const isSelected = selectedBlockId === block.id;
             const isDragging = dragState?.blockId === block.id;
-            const bgClass = BLOCK_BG[block.color] ?? "bg-gray-600/80";
+            const glowColor = BLOCK_GLOW_COLOR[block.color] ?? BLOCK_GLOW_COLOR.gray;
             const height = durationMinutes * PIXELS_PER_MINUTE;
 
             return (
@@ -448,8 +448,11 @@ export default function TimeBlockCalendar({
                   setSelectedBlockId(isSelected ? null : block.id);
                 }}
               >
-                {/* Inner container: bg color + overflow-hidden for rounded corners */}
-                <div className={cn("absolute inset-0 rounded-md overflow-hidden", bgClass)}>
+                {/* Inner container: inset glow + overflow-hidden for rounded corners */}
+                <div
+                  className="absolute inset-0 rounded-md overflow-hidden bg-black/40"
+                  style={{ boxShadow: `inset 0 0 12px 4px ${glowColor}` }}
+                >
                   {/* Action bar shown when selected */}
                   {isSelected && (
                     <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
@@ -493,23 +496,19 @@ export default function TimeBlockCalendar({
                   </div>
                 </div>
 
-                {/* Top resize handle — semicircle protruding above the block */}
+                {/* Top resize handle */}
                 <div
-                  className="absolute -top-3 left-0 right-0 h-6 flex items-start justify-center cursor-n-resize z-10"
+                  className="absolute -top-3 left-0 right-0 h-6 cursor-n-resize z-10"
                   style={{ touchAction: "none" }}
                   onPointerDown={(e) => startResizeDrag(e, block.id, "resize-top")}
-                >
-                  <div className="w-6 h-3 rounded-t-full bg-white/50 pointer-events-none" />
-                </div>
+                />
 
-                {/* Bottom resize handle — semicircle protruding below the block */}
+                {/* Bottom resize handle */}
                 <div
-                  className="absolute -bottom-3 left-0 right-0 h-6 flex items-end justify-center cursor-s-resize z-10"
+                  className="absolute -bottom-3 left-0 right-0 h-6 cursor-s-resize z-10"
                   style={{ touchAction: "none" }}
                   onPointerDown={(e) => startResizeDrag(e, block.id, "resize-bottom")}
-                >
-                  <div className="w-6 h-3 rounded-b-full bg-white/50 pointer-events-none" />
-                </div>
+                />
               </div>
             );
           })}

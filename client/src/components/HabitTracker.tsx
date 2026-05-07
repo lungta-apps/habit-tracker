@@ -20,6 +20,7 @@ export interface Habit {
   color: HabitColor;
   endDay?: number | null;
   itemType?: "habit" | "project";
+  weeklyTarget?: number | null;
 }
 
 export const HABIT_COLORS: { value: HabitColor; label: string; bg: string; text: string }[] = [
@@ -66,7 +67,7 @@ async function createHabit(data: { name: string; color: string; month: string; i
   return response.json();
 }
 
-async function updateHabit(id: string, data: { name?: string; color?: string; endDay?: number | null }): Promise<Habit> {
+async function updateHabit(id: string, data: { name?: string; color?: string; endDay?: number | null; weeklyTarget?: number | null }): Promise<Habit> {
   const response = await fetch(`/api/habits/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -170,7 +171,7 @@ export default function HabitTracker() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name?: string; color?: string; endDay?: number | null } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; color?: string; endDay?: number | null; weeklyTarget?: number | null } }) =>
       updateHabit(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
@@ -319,6 +320,13 @@ export default function HabitTracker() {
     [deleteMutation]
   );
 
+  const handleUpdateHabitWeeklyTarget = useCallback(
+    (id: string, weeklyTarget: number | null) => {
+      updateMutation.mutate({ id, data: { weeklyTarget } });
+    },
+    [updateMutation]
+  );
+
   const handleSetEndLine = useCallback(
     (id: string, day: number) => {
       const habit = habits.find((h) => h.id === id);
@@ -387,6 +395,7 @@ export default function HabitTracker() {
               onAddHabit={handleAddHabit}
               onUpdateHabit={handleUpdateHabit}
               onUpdateHabitColor={handleUpdateHabitColor}
+              onUpdateHabitWeeklyTarget={handleUpdateHabitWeeklyTarget}
               onDeleteHabit={handleDeleteHabit}
               onToggleDay={handleToggleDay}
               onSetEndLine={handleSetEndLine}
