@@ -48,7 +48,6 @@ export default function HabitNameInput({
   weeklyTarget,
   onWeeklyTargetChange,
 }: HabitNameInputProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [frequencyOpen, setFrequencyOpen] = useState(false);
   const [localValue, setLocalValue] = useState(value);
@@ -106,8 +105,6 @@ export default function HabitNameInput({
         !isLastRow && "border-b border-zinc-700",
         "bg-black"
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       role="gridcell"
     >
       {dragHandleProps && (
@@ -152,7 +149,7 @@ export default function HabitNameInput({
                 "focus:outline-none focus:ring-1 focus:ring-ring",
                 weeklyTarget != null
                   ? "bg-zinc-700 text-zinc-200 opacity-100"
-                  : cn("bg-zinc-800 text-zinc-500", isHovered || isFocused ? "opacity-100" : "opacity-0")
+                  : cn("bg-zinc-800 text-zinc-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100")
               )}
             >
               {weeklyTarget != null ? `${weeklyTarget}×/wk` : "···"}
@@ -188,7 +185,7 @@ export default function HabitNameInput({
         className={cn(
           "h-6 w-6 shrink-0",
           "transition-opacity duration-150",
-          isHovered || isFocused ? "opacity-100" : "opacity-0"
+          "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
         )}
       >
         <X className="h-3 w-3" />
