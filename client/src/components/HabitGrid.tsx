@@ -37,7 +37,7 @@ interface HabitGridProps {
   onDeleteHabit: (id: string) => void;
   onToggleDay: (habitId: string, day: number) => void;
   onSetEndLine: (habitId: string, day: number) => void;
-  onSetCompletionValue: (habitId: string, day: number, value: number | null) => void;
+  onSetCompletionValue: (habitId: string, day: number, value: string | null) => void;
   onReorderHabits: (habitIds: string[]) => void;
   onDayHeaderClick?: (day: number) => void;
 }

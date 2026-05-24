@@ -12,8 +12,8 @@ interface HabitCellProps {
   dayNumber: number;
   color: HabitColor;
   isLastRow?: boolean;
-  numericValue?: number;
-  onSetValue: (value: number | null) => void;
+  cellValue?: string;
+  onSetValue: (value: string | null) => void;
   isWeekGoalMet?: boolean;
 }
 
@@ -31,7 +31,7 @@ export default function HabitCell({
   dayNumber,
   color,
   isLastRow = false,
-  numericValue,
+  cellValue,
   onSetValue,
   isWeekGoalMet = false,
 }: HabitCellProps) {
@@ -82,7 +82,7 @@ export default function HabitCell({
     didLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       didLongPress.current = true;
-      setInputValue(numericValue != null ? String(numericValue) : "");
+      setInputValue(cellValue ?? "");
       setIsEditing(true);
     }, 500);
   };
@@ -106,11 +106,10 @@ export default function HabitCell({
     const trimmed = inputValue.trim();
     if (trimmed === "") {
       onSetValue(null);
-    } else {
-      const num = parseInt(trimmed, 10);
-      if (!isNaN(num)) {
-        onSetValue(num);
-      }
+    } else if (/^\d+$/.test(trimmed)) {
+      onSetValue(trimmed);
+    } else if (/^[a-zA-Z]{1,2}$/.test(trimmed)) {
+      onSetValue(trimmed);
     }
   };
 
@@ -164,8 +163,7 @@ export default function HabitCell({
       {isEditing ? (
         <input
           ref={inputRef}
-          type="number"
-          inputMode="numeric"
+          type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onBlur={commitValue}
@@ -173,12 +171,12 @@ export default function HabitCell({
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className="w-full h-full bg-black text-foreground text-xs text-center outline-none border-2 border-ring rounded-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-full h-full bg-black text-foreground text-xs text-center outline-none border-2 border-ring rounded-sm"
         />
       ) : (
         <>
-          {numericValue != null ? (
-            <span className={cn("text-xs font-semibold", colorClasses.text)}>{numericValue}</span>
+          {cellValue != null ? (
+            <span className={cn("text-xs font-semibold", colorClasses.text)}>{cellValue}</span>
           ) : isCompleted ? (
             <Check className="h-4 w-4" aria-hidden="true" />
           ) : isWeekGoalMet ? (

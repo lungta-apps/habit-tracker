@@ -16,7 +16,7 @@ export interface Habit {
   id: string;
   name: string;
   completedDays: number[];
-  completionValues?: Record<number, number>;
+  completionValues?: Record<number, string>;
   color: HabitColor;
   endDay?: number | null;
   itemType?: "habit" | "project";
@@ -82,7 +82,7 @@ async function deleteHabit(id: string): Promise<void> {
   if (!response.ok) throw new Error("Failed to delete habit");
 }
 
-async function addCompletion(habitId: string, date: string, value?: number): Promise<void> {
+async function addCompletion(habitId: string, date: string, value?: string): Promise<void> {
   const response = await fetch(`/api/habits/${habitId}/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -91,7 +91,7 @@ async function addCompletion(habitId: string, date: string, value?: number): Pro
   if (!response.ok) throw new Error("Failed to add completion");
 }
 
-async function updateCompletionValue(habitId: string, date: string, value: number | null): Promise<void> {
+async function updateCompletionValue(habitId: string, date: string, value: string | null): Promise<void> {
   const response = await fetch(`/api/habits/${habitId}/completions`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -201,7 +201,7 @@ export default function HabitTracker() {
   });
 
   const setCompletionValueMutation = useMutation({
-    mutationFn: async ({ habitId, day, value }: { habitId: string; day: number; value: number | null }) => {
+    mutationFn: async ({ habitId, day, value }: { habitId: string; day: number; value: string | null }) => {
       const dateStr = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), day), "yyyy-MM-dd");
       const habit = habits.find((h) => h.id === habitId);
       if (!habit) return;
@@ -348,7 +348,7 @@ export default function HabitTracker() {
   );
 
   const handleSetCompletionValue = useCallback(
-    (habitId: string, day: number, value: number | null) => {
+    (habitId: string, day: number, value: string | null) => {
       setCompletionValueMutation.mutate({ habitId, day, value });
     },
     [setCompletionValueMutation]

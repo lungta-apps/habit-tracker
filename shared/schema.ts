@@ -60,7 +60,7 @@ export const habitCompletions = pgTable("habit_completions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   habitId: varchar("habit_id").notNull().references(() => habits.id, { onDelete: "cascade" }),
   completedDate: timestamp("completed_date").notNull(),
-  value: integer("value"),
+  value: text("value"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
