@@ -160,7 +160,7 @@ export async function registerRoutes(
         habits.map(async (habit) => {
           const completions = await storage.getCompletionsForHabit(habit.id, start, end);
           const completedDays = completions.map(c => getDayFromStoredDate(c.completedDate));
-          const completionValues: Record<number, number> = {};
+          const completionValues: Record<number, string> = {};
           for (const c of completions) {
             if (c.value != null) {
               completionValues[getDayFromStoredDate(c.completedDate)] = c.value;
@@ -333,7 +333,7 @@ export async function registerRoutes(
       }
 
       const completionDate = parseDateToNoonUTC(date);
-      const completion = await storage.addCompletion(habitId, completionDate, value != null ? Number(value) : undefined);
+      const completion = await storage.addCompletion(habitId, completionDate, value != null ? String(value) : undefined);
       res.status(201).json(completion);
     } catch (error) {
       next(error);
@@ -360,7 +360,7 @@ export async function registerRoutes(
       }
 
       const completionDate = parseDateToNoonUTC(date);
-      const updated = await storage.updateCompletionValue(habitId, completionDate, value != null ? Number(value) : null);
+      const updated = await storage.updateCompletionValue(habitId, completionDate, value != null ? String(value) : null);
 
       if (updated) {
         res.json(updated);

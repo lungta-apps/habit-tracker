@@ -97,7 +97,7 @@ habit_completions
   - id (varchar, PK, UUID)
   - habitId (varchar, FK -> habits.id, cascade delete)
   - completedDate (timestamp, stored at noon UTC)
-  - value (integer, nullable) - optional numeric value (minutes, reps, etc.)
+  - value (text, nullable) - optional cell label: pure digits of any length (e.g. "10" for minutes) OR 1–2 alphabetic characters (e.g. "ok", "x"); validated and stored as a string
   - createdAt (timestamp)
 
 time_blocks
@@ -151,7 +151,7 @@ month_notes
 
 The app supports two views for tracking habits, switchable via ViewSwitcher component:
 
-1. **Grid View** (default): Split into two independent sections — **Habits** (top) and **Projects** (bottom) — separated by a divider. Each section has its own scrollable grid, DndContext, add button, and `MonthNoteInput`. The distinction is stored as `itemType` ("habit" | "project") on the habit row. Both sections are identical in behavior: days as columns, rows as items, horizontal scroll, click to toggle completion, double-click to toggle end line, long-press (500ms) for numeric value input, sticky name column, drag-and-drop reordering. The name column collapse toggle (chevron) is shared across both sections via a single `nameColumnCollapsed` state (persisted in localStorage under key `habit-name-column-collapsed`). Auto-collapses on mobile (window.innerWidth < 640) by default. Reordering within a section sends the full combined ID list (section items first, other section items appended) so the server's `sortOrder` stays coherent across both groups.
+1. **Grid View** (default): Split into two independent sections — **Habits** (top) and **Projects** (bottom) — separated by a divider. Each section has its own scrollable grid, DndContext, add button, and `MonthNoteInput`. The distinction is stored as `itemType` ("habit" | "project") on the habit row. Both sections are identical in behavior: days as columns, rows as items, horizontal scroll, click to toggle completion, double-click to toggle end line, long-press (500ms) for cell value input (pure digits of any length, or 1–2 alpha characters), sticky name column, drag-and-drop reordering. The name column collapse toggle (chevron) is shared across both sections via a single `nameColumnCollapsed` state (persisted in localStorage under key `habit-name-column-collapsed`). Auto-collapses on mobile (window.innerWidth < 640) by default. Reordering within a section sends the full combined ID list (section items first, other section items appended) so the server's `sortOrder` stays coherent across both groups.
 
    **Per-week frequency goals**: Habits and projects can have an optional `weeklyTarget` (1–6). When set, a `Nx/wk` chip appears in the name column (inline between the text input and delete button); clicking it opens a popover to change the target. The grid inserts a 20px separator column after each Sunday. In separator cells for habits with a weekly target, a segmented bar (N equal segments with horizontal dividers) fills white from the bottom up as completions accumulate that week — empty segments are dark. Days in a week where the goal is already met render with a subtle dark tint and a `—` dash instead of the normal empty state. `sundayDays` is computed once in `HabitGrid` (via `useMemo`) and passed to each `HabitRow` so both the header rows and habit rows stay in sync on the same `gridTemplateColumns`.
 

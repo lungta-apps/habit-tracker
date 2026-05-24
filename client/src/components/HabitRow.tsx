@@ -17,8 +17,8 @@ interface HabitRowProps {
   onHabitDelete: () => void;
   onToggleDay: (day: number) => void;
   onSetEndLine: (day: number) => void;
-  onSetCompletionValue: (day: number, value: number | null) => void;
-  completionValues: Record<number, number>;
+  onSetCompletionValue: (day: number, value: string | null) => void;
+  completionValues: Record<number, string>;
   endDay?: number;
   isLastRow?: boolean;
   nameColumnCollapsed?: boolean;
@@ -112,7 +112,7 @@ export default function HabitRow({
                 dayNumber={day}
                 color={habitColor}
                 isLastRow={isLastRow}
-                numericValue={completionValues[day]}
+                cellValue={completionValues[day]}
                 onSetValue={(value) => onSetCompletionValue(day, value)}
                 isWeekGoalMet={isWeekGoalMet}
               />
