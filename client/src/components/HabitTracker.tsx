@@ -374,7 +374,7 @@ export default function HabitTracker() {
   }
 
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen bg-black overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <MonthHeader
           currentDate={currentDate}

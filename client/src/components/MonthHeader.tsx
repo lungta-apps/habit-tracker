@@ -20,11 +20,11 @@ export default function MonthHeader({
   const monthYear = format(currentDate, "MMMM yyyy");
 
   return (
-    <header className="flex items-center justify-between gap-4 py-8" role="banner">
-      <div className="text-sm text-muted-foreground min-w-32">
+    <header className="flex items-center justify-between gap-2 sm:gap-4 py-8" role="banner">
+      <div className="text-sm text-muted-foreground flex-1 min-w-0 truncate hidden sm:block">
         {username && <span>Logged in as <span className="font-medium text-foreground">{username}</span></span>}
       </div>
-      <div className="flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-2 sm:gap-4 shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -36,7 +36,7 @@ export default function MonthHeader({
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <h1
-          className="text-3xl font-bold tracking-tight min-w-64 text-center"
+          className="text-2xl sm:text-3xl font-bold tracking-tight sm:min-w-64 text-center"
           data-testid="text-month-year"
           aria-live="polite"
         >

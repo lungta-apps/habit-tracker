@@ -84,7 +84,7 @@ export default function HabitNameInput({
       <div
         className={cn(
           "sticky left-0 z-10 h-10",
-          "flex items-center justify-center",
+          "flex flex-col items-center justify-center gap-0.5",
           "border-r border-border/50",
           !isLastRow && "border-b",
           "bg-card"
@@ -92,6 +92,9 @@ export default function HabitNameInput({
         role="gridcell"
       >
         <div className={cn("w-3 h-3 rounded-full", colorBg)} />
+        {weeklyTarget != null && (
+          <span className="text-[8px] leading-none text-zinc-400 font-medium">{weeklyTarget}×</span>
+        )}
       </div>
     );
   }

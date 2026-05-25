@@ -119,7 +119,7 @@ export default function HabitRow({
               {isSeparatorDay && (
                 <div
                   className={cn(
-                    "flex flex-col",
+                    "flex flex-col h-full",
                     "border-r border-zinc-800",
                     !isLastRow && "border-b border-zinc-700"
                   )}
