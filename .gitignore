@@ -5,3 +5,6 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .env
+
+# Personal session notes (not for the public repo)
+Summaries/
