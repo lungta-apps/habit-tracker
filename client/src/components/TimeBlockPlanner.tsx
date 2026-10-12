@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { X } from "lucide-react";
+import { X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -16,6 +16,7 @@ import {
 import TimeBlockSidebar, { type SidebarTask } from "./TimeBlockSidebar";
 import TimeBlockCalendar, { HOUR_HEIGHT, type TimeBlock } from "./TimeBlockCalendar";
 import { type Habit } from "./HabitTracker";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const SCROLL_ZONE_PX = 80;
 const MAX_SCROLL_SPEED = 8;
@@ -66,6 +67,11 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
   const [sidebarTasks, setSidebarTasks] = useState<SidebarTask[]>([]);
   const [activeSidebarTask, setActiveSidebarTask] = useState<SidebarTask | null>(null);
   const [previewMinute, setPreviewMinute] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  // On mobile, tuck the sidebar away while a task is being dragged so the
+  // calendar gets the full width. It stays mounted (just 0-width) so the drag isn't interrupted.
+  const sidebarVisible = sidebarOpen && !(isMobile && activeSidebarTask);
   const previewMinuteRef = useRef<number | null>(null);
   const pointerYRef = useRef(0);
   const calendarGridRef = useRef<HTMLDivElement>(null);
@@ -262,7 +268,17 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
     <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-zinc-800 shrink-0">
-        <h2 className="text-sm font-semibold">{dateLabel}</h2>
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            className="h-8 w-8 -ml-2 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            aria-label={sidebarOpen ? "Hide task panel" : "Show task panel"}
+            aria-expanded={sidebarOpen}
+          >
+            {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </button>
+          <h2 className="text-sm font-semibold truncate">{dateLabel}</h2>
+        </div>
         <button
           onClick={onClose}
           className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -280,13 +296,19 @@ export default function TimeBlockPlanner({ date, habits, onClose }: Props) {
           onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
         >
-          <TimeBlockSidebar
-            tasks={sidebarTasks}
-            habits={habits}
-            onAddTask={handleAddTask}
-            onUpdateTask={handleUpdateTask}
-            onRemoveTask={handleRemoveTask}
-          />
+          <div
+            className="flex shrink-0 overflow-hidden transition-[width] duration-200 ease-out"
+            style={{ width: sidebarVisible ? 208 : 0 }}
+            aria-hidden={!sidebarVisible}
+          >
+            <TimeBlockSidebar
+              tasks={sidebarTasks}
+              habits={habits}
+              onAddTask={handleAddTask}
+              onUpdateTask={handleUpdateTask}
+              onRemoveTask={handleRemoveTask}
+            />
+          </div>
           <TimeBlockCalendar
             blocks={timeBlocks}
             previewMinute={previewMinute}
