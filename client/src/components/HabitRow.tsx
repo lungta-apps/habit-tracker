@@ -6,6 +6,27 @@ import HabitCell from "./HabitCell";
 import { cn } from "@/lib/utils";
 import { HabitColor } from "./HabitTracker";
 
+// Outward glow for the weekly progress bar once a week's goal is met.
+// Same hues as the time-block glow palette, slightly softer for an outer halo.
+const WEEK_GOAL_GLOW: Record<HabitColor, string> = {
+  red:     "rgba(239, 68, 68, 0.95)",
+  rose:    "rgba(244, 63, 94, 0.95)",
+  orange:  "rgba(249, 115, 22, 0.95)",
+  amber:   "rgba(245, 158, 11, 0.95)",
+  yellow:  "rgba(234, 179, 8, 0.95)",
+  lime:    "rgba(132, 204, 22, 0.95)",
+  green:   "rgba(34, 197, 94, 0.95)",
+  emerald: "rgba(16, 185, 129, 0.95)",
+  teal:    "rgba(20, 184, 166, 0.95)",
+  cyan:    "rgba(6, 182, 212, 0.95)",
+  sky:     "rgba(14, 165, 233, 0.95)",
+  blue:    "rgba(59, 130, 246, 0.95)",
+  indigo:  "rgba(99, 102, 241, 0.95)",
+  purple:  "rgba(168, 85, 247, 0.95)",
+  fuchsia: "rgba(217, 70, 239, 0.95)",
+  pink:    "rgba(236, 72, 153, 0.95)",
+};
+
 interface HabitRowProps {
   habitId: string;
   habitName: string;
@@ -125,8 +146,21 @@ export default function HabitRow({
                   )}
                   aria-hidden="true"
                 >
-                  {weeklyTarget != null &&
-                    Array.from({ length: weeklyTarget }, (_, i) => {
+                  {weeklyTarget != null && (
+                    <div
+                      className={cn(
+                        "flex flex-col flex-1 transition-shadow duration-300",
+                        isWeekGoalMet && "relative z-10"
+                      )}
+                      style={
+                        isWeekGoalMet
+                          ? {
+                              boxShadow: `0 0 0 1px ${WEEK_GOAL_GLOW[habitColor] ?? WEEK_GOAL_GLOW.blue}, 0 0 6px 2px ${WEEK_GOAL_GLOW[habitColor] ?? WEEK_GOAL_GLOW.blue}, 0 0 16px 5px ${WEEK_GOAL_GLOW[habitColor] ?? WEEK_GOAL_GLOW.blue}`,
+                            }
+                          : undefined
+                      }
+                    >
+                    {Array.from({ length: weeklyTarget }, (_, i) => {
                       const filled = i >= weeklyTarget - Math.min(weekCount, weeklyTarget);
                       return (
                         <div
@@ -139,6 +173,8 @@ export default function HabitRow({
                         />
                       );
                     })}
+                    </div>
+                  )}
                 </div>
               )}
             </Fragment>
