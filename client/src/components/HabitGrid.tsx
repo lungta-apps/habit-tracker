@@ -270,6 +270,8 @@ export default function HabitGrid({
                     isLastRow={index === habitItems.length - 1}
                     nameColumnCollapsed={nameColumnCollapsed}
                     weeklyTarget={habit.weeklyTarget}
+                    carryInCount={habit.carryInCount ?? 0}
+                    carryOutCount={habit.carryOutCount ?? 0}
                     onWeeklyTargetChange={(target) => onUpdateHabitWeeklyTarget(habit.id, target)}
                     sundayDays={sundayDays}
                   />
@@ -333,6 +335,8 @@ export default function HabitGrid({
                     nameColumnCollapsed={nameColumnCollapsed}
                     placeholder="New project..."
                     weeklyTarget={habit.weeklyTarget}
+                    carryInCount={habit.carryInCount ?? 0}
+                    carryOutCount={habit.carryOutCount ?? 0}
                     onWeeklyTargetChange={(target) => onUpdateHabitWeeklyTarget(habit.id, target)}
                     sundayDays={sundayDays}
                   />

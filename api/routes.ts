@@ -155,6 +155,46 @@ export async function registerRoutes(
       const start = startOfMonth(monthDate);
       const end = endOfMonth(monthDate);
 
+      // Weeks run Mon–Sun. When the month starts or ends mid-week, the rest of that
+      // week lives in the neighboring month. Find which days those are so weekly goals
+      // can count completions from the same habit (matched by name + section) there.
+      const [year, monthNum] = monthKey.split("-").map(Number);
+      const daysInMonth = new Date(Date.UTC(year, monthNum, 0)).getUTCDate();
+      const isoDow = (d: Date) => d.getUTCDay() || 7; // Mon=1 … Sun=7
+      const leadDays = isoDow(new Date(Date.UTC(year, monthNum - 1, 1))) - 1;
+      const trailDays = 7 - isoDow(new Date(Date.UTC(year, monthNum - 1, daysInMonth)));
+
+      const prevMonthDate = new Date(Date.UTC(year, monthNum - 2, 1));
+      const nextMonthDate = new Date(Date.UTC(year, monthNum, 1));
+      const prevMonthKey = format(new Date(prevMonthDate.getUTCFullYear(), prevMonthDate.getUTCMonth(), 1), "yyyy-MM");
+      const nextMonthKey = format(new Date(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth(), 1), "yyyy-MM");
+      const prevMonthDays = new Date(Date.UTC(year, monthNum - 1, 0)).getUTCDate();
+
+      const matchKey = (h: { name: string; itemType: string | null }) =>
+        `${h.itemType ?? "habit"}|${h.name.trim().toLowerCase()}`;
+      const buildMatchMap = async (key: string, needed: boolean) => {
+        const map = new Map<string, string>();
+        if (!needed) return map;
+        for (const h of await storage.getHabits(userId, key)) {
+          if (h.name.trim() && !map.has(matchKey(h))) map.set(matchKey(h), h.id);
+        }
+        return map;
+      };
+      const [prevMatches, nextMatches] = await Promise.all([
+        buildMatchMap(prevMonthKey, leadDays > 0),
+        buildMatchMap(nextMonthKey, trailDays > 0),
+      ]);
+
+      // Count a neighbor habit's completions that fall on the given days of its month
+      const countNeighbor = async (habitId: string | undefined, monthKeyForRange: string, fromDay: number, toDay: number) => {
+        if (!habitId) return 0;
+        const d = parseISO(`${monthKeyForRange}-01`);
+        const completions = await storage.getCompletionsForHabit(habitId, startOfMonth(d), endOfMonth(d));
+        return completions
+          .map(c => getDayFromStoredDate(c.completedDate))
+          .filter(day => day >= fromDay && day <= toDay).length;
+      };
+
       // Always include completedDays for the month
       const habitsWithCompletions = await Promise.all(
         habits.map(async (habit) => {
@@ -166,7 +206,18 @@ export async function registerRoutes(
               completionValues[getDayFromStoredDate(c.completedDate)] = c.value;
             }
           }
-          return { ...habit, completedDays, completionValues };
+
+          let carryInCount = 0;
+          let carryOutCount = 0;
+          if (habit.weeklyTarget != null && habit.name.trim()) {
+            const key = matchKey(habit);
+            [carryInCount, carryOutCount] = await Promise.all([
+              leadDays > 0 ? countNeighbor(prevMatches.get(key), prevMonthKey, prevMonthDays - leadDays + 1, prevMonthDays) : 0,
+              trailDays > 0 ? countNeighbor(nextMatches.get(key), nextMonthKey, 1, trailDays) : 0,
+            ]);
+          }
+
+          return { ...habit, completedDays, completionValues, carryInCount, carryOutCount };
         })
       );
 
@@ -490,4 +541,4 @@ export async function registerRoutes(
       next(error);
     }
   });
-}
+}

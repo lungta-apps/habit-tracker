@@ -21,6 +21,10 @@ export interface Habit {
   endDay?: number | null;
   itemType?: "habit" | "project";
   weeklyTarget?: number | null;
+  /** Completions in the previous month that fall in this month's first (partial) week */
+  carryInCount?: number;
+  /** Completions in the next month that fall in this month's last (partial) week */
+  carryOutCount?: number;
 }
 
 export const HABIT_COLORS: { value: HabitColor; label: string; bg: string; text: string }[] = [
@@ -166,7 +170,7 @@ export default function HabitTracker() {
   const createMutation = useMutation({
     mutationFn: createHabit,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
     },
   });
 
@@ -174,14 +178,14 @@ export default function HabitTracker() {
     mutationFn: ({ id, data }: { id: string; data: { name?: string; color?: string; endDay?: number | null; weeklyTarget?: number | null } }) =>
       updateHabit(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteHabit,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
     },
   });
 
@@ -196,7 +200,7 @@ export default function HabitTracker() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
     },
   });
 
@@ -216,14 +220,14 @@ export default function HabitTracker() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
     },
   });
 
   const copyMutation = useMutation({
     mutationFn: (habitIds: string[]) => copyHabits({ habitIds, targetMonth: monthKey }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
       setShowCopyDialog(false);
     },
   });
@@ -247,7 +251,7 @@ export default function HabitTracker() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["habits", monthKey] });
+      queryClient.invalidateQueries({ queryKey: ["habits"] }) // all months: neighbor months show carry-over week counts;
     },
   });
 
