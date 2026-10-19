@@ -45,6 +45,8 @@ interface HabitRowProps {
   nameColumnCollapsed?: boolean;
   placeholder?: string;
   weeklyTarget?: number | null;
+  carryInCount?: number;
+  carryOutCount?: number;
   onWeeklyTargetChange?: (target: number | null) => void;
   sundayDays: Set<number>;
 }
@@ -69,6 +71,8 @@ export default function HabitRow({
   weeklyTarget,
   onWeeklyTargetChange,
   sundayDays,
+  carryInCount = 0,
+  carryOutCount = 0,
 }: HabitRowProps) {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -83,10 +87,13 @@ export default function HabitRow({
   if (rangeStart <= daysInMonth) weekRanges.push([rangeStart, daysInMonth]);
 
   const dayToWeekCount = new Map<number, number>();
-  for (const [start, end] of weekRanges) {
-    const count = completedDays.filter((d) => d >= start && d <= end).length;
+  weekRanges.forEach(([start, end], i) => {
+    let count = completedDays.filter((d) => d >= start && d <= end).length;
+    // The first/last week may continue into the neighboring month — include those completions
+    if (i === 0) count += carryInCount;
+    if (i === weekRanges.length - 1) count += carryOutCount;
     for (let d = start; d <= end; d++) dayToWeekCount.set(d, count);
-  }
+  });
 
   const nameColWidth = nameColumnCollapsed ? "32px" : "minmax(225px, 250px)";
   const gridTemplateColumns = `${nameColWidth} ${days

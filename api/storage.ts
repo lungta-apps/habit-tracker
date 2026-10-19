@@ -143,6 +143,7 @@ export class DrizzleStorage implements IStorage {
         userId: userId,
         sortOrder: i,
         itemType: src.itemType,
+        weeklyTarget: src.weeklyTarget,
       }).returning();
       copiedHabits.push(result[0]);
     }
@@ -269,4 +270,4 @@ export class DrizzleStorage implements IStorage {
   }
 }
 
-export const storage = new DrizzleStorage();
+export const storage = new DrizzleStorage();
