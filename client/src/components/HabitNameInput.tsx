@@ -83,7 +83,7 @@ export default function HabitNameInput({
     return (
       <div
         className={cn(
-          "sticky left-0 z-10 h-10",
+          "sticky left-0 z-20 h-10",
           "flex flex-col items-center justify-center gap-0.5",
           "border-r border-border/50",
           !isLastRow && "border-b",
@@ -103,7 +103,7 @@ export default function HabitNameInput({
     <div
       className={cn(
         "group flex items-center h-10 px-2 gap-1",
-        "sticky left-0 z-10",
+        "sticky left-0 z-20",
         "border-r border-zinc-700",
         !isLastRow && "border-b border-zinc-700",
         "bg-black"

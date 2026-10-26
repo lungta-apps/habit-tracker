@@ -154,7 +154,7 @@ export default function HabitGrid({
       style={{ gridTemplateColumns: gridTemplate }}
       aria-hidden="true"
     >
-      <div className="sticky left-0 z-10" />
+      <div className="sticky left-0 z-20" />
       {days.map((day) => (
         <Fragment key={day}>
           <div className="flex items-center justify-center text-[10px] text-muted-foreground/60">
@@ -172,7 +172,7 @@ export default function HabitGrid({
       style={{ gridTemplateColumns: gridTemplate }}
     >
       <div
-        className="sticky left-0 z-10 h-10 flex items-center bg-[#111111] border-r border-b border-zinc-700"
+        className="sticky left-0 z-20 h-10 flex items-center bg-[#111111] border-r border-b border-zinc-700"
         role="columnheader"
       >
         {!nameColumnCollapsed && (
